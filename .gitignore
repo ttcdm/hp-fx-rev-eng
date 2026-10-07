@@ -1,0 +1,15 @@
+# Build objects and binaries
+*.o
+*.a
+*.ko
+*.mod*
+*.order
+*.symvers
+*.ppm
+hpfx_3d_demo
+test_hpfx_suite
+hpfx_compute_bench
+test_hpfx_compute
+
+# OS artifacts
+.DS_Store
