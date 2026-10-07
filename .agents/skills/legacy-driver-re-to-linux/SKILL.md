@@ -99,3 +99,17 @@ Map general-purpose compute onto legacy fixed-function graphics pipelines:
 3. **Hardware Z-Buffer as Parallel Search Engine**: Compute discrete Voronoi diagrams and Euclidean distance fields via 3D cone rendering with depth testing.
 4. **2D Blitter ROPs as SIMD Logic Engine**: Simulate cellular automata (Conway's Game of Life) and parallel bitwise operations at memory bandwidth speeds.
 5. **FP14 Geometry Engines as Linear Algebra Accelerators**: Decompose matrix-matrix multiplication (GEMM) into $4 \times 4$ blocks processed by hardware geometry transform units.
+
+### Phase 9: High-Resolution Native Silicon Visual Showcases & Demonstration Suite
+Produce authentic, high-impact visual demonstrations that strictly exercise target ASIC capabilities:
+1. **Silicon Authenticity Invariant**:
+   - Confine demonstrations strictly to capabilities present in physical silicon (e.g., Summit T&L, Lego rasterizer, 2D BitBLT engine).
+   - Do not substitute CPU-emulated software shaders, post-2000 shadow mapping, or raytracing without clear architectural delineation.
+2. **Native 2D Engine Typography & Instrumentation Consoles**:
+   - Leverage 2D coordinate-triggered solid fills (`0xCC` SRCCOPY) with an embedded 95-glyph 5×7 ASCII font to render complete workstation instrumentation consoles, live telemetry, and bus packet decoders natively in VRAM.
+   - Exercise hardware Raster Operations (e.g. `0x66` XOR invert) for glitch-capture / zoom rubber-banding boxes directly across rendered framebuffers.
+   - Exercise screen-to-screen BitBLT area copies to stamp corporate emblems and channel badges across multi-window viewports.
+3. **Unified Master Showcase & Deterministic CRC Verification**:
+   - Standardize all demonstration viewports at 1920×1080 Full HD (32bpp).
+   - Build a unified gallery runner (`hpfx_gallery`) compiling and executing all native showcases in sequence with timing metrics and automated PPM/PNG conversion.
+   - Calculate deterministic IEEE 802.3 CRC32 checksums for every rendered frame to ensure 100% bitwise repeatability across driver refactorings.

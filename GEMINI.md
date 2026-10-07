@@ -19,7 +19,7 @@ This project contains the reverse-engineered Linux kernel driver, 2D/3D hardware
 * `hpfx_gallery.c`: Unified visual showcase master generator rendering all 6 native GPU showcases and exporting high-res PPM and PNG images.
 * `test_hpfx_suite.c`: Automated regression test suite containing 377 assertions across 20 domains (100% pass rate).
 * `10-hpfx.conf`: X.Org configuration snippet for running desktop environments over `/dev/fb0`.
-* `.agents/skills/legacy-driver-re-to-linux/SKILL.md`: Workspace skill capturing the 8-phase reverse engineering and Linux porting runbook.
+* `.agents/skills/legacy-driver-re-to-linux/SKILL.md`: Workspace skill capturing the 9-phase reverse engineering and Linux porting runbook.
 
 ## Build & Test Commands
 * `make`: Compile userspace 3D library and demos (`libhpfx3d.a`, `hpfx_3d_demo`, `hpfx_gears`, `hpfx_cad_studio`, `hpfx_texture_demo`, `hpfx_voronoi_3d`, `hpfx_2d_demo`, `hpfx_gallery`, `test_hpfx_suite`).
@@ -34,3 +34,5 @@ This project contains the reverse-engineered Linux kernel driver, 2D/3D hardware
 * Always run `make test` after code modifications to ensure 100% assertion pass rates.
 * Maintain clean builds with zero compiler warnings (`-Wall -Wextra`).
 * Preserve register cross-references with official HP documentation (Data Sheet `5980-1411E`, Config Guide `A5021-90015`).
+* **Silicon Authenticity Invariant**: All demonstration code and benchmarks must strictly exercise features natively implemented in physical GPU silicon (T&L, 24-bit Z-buffer, 128-bit 2D engine, ROPs, bilinear texturing) without CPU software tricks masquerading as GPU capabilities.
+* **Showcase Quality & Verification**: Maintain all visual showcases at 1920×1080 Full HD with deterministic IEEE 802.3 CRC32 checksum tracking and unified gallery synchronization via `make gallery`.

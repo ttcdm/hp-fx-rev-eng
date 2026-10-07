@@ -68,12 +68,12 @@ static const struct gallery_entry g_demos[] = {
         "Hoff et al. 64-facet 3D cones; 24-bit Z-buffer solves Voronoi diagram in silicon (1080p Full HD)"
     },
     {
-        "Hardware 2D BitBLT & Compositing Engine",
+        "Hardware 2D BitBLT & Fractal Computing Studio",
         "./hpfx_2d_demo",
         "-w 1920 -h 1080 -o hpfx_render_2d_blt.ppm",
         "hpfx_render_2d_blt.ppm",
         "hpfx_render_2d_blt.png",
-        "HP 16700A & 54845A console: 128-bit 2D engine, HW ROPs (0xCC/0x66), Screen BitBLT, 5x7 font (1080p Full HD)"
+        "2D Fractal Studio: Mandelbrot, Julia, Seahorse 1,250x zoom, HW ROPs (0x66 XOR), Screen BitBLT (1080p Full HD)"
     }
 };
 
