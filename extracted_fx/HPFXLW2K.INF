@@ -1,0 +1,589 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;   (c) Copyright Hewlett-Packard Company, 1998.   All rights are reserved.
+;   Copying or other reproduction of this program except for archival purposes
+;   is prohibited without the prior written consent of Hewlett-Packard Company. 
+;                 
+;                 RESTRICTED RIGHTS LEGEND
+;     
+;   Use, duplication, or disclosure by the U.S. Government is subject to
+;   restrictions as set forth in subdivision (b) (3) (ii) of the Rights in
+;   Technical Data and Computer Software clause at  52.227-7013.
+;     
+;   HEWLETT-PACKARD COMPANY
+;   Fort Collins, Colorado
+;     
+; 
+;     DESCRIPTION:
+;		WindowsNT display driver INF file
+; 
+;     AUTHOR: Courtney Goeltzenleuchter
+; 
+;     HISTORY:    
+; 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+
+; hpfxl.inf
+;
+; Installation inf for the Hewlett-Packard VisualizeFX video drivers.
+;
+
+
+[Version]
+Signature="$Windows NT$"
+Provider=%Mfg%
+ClassGUID={4D36E968-E325-11CE-BFC1-08002BE10318}
+Class=Display
+CatalogFile=hpfxl.cat
+DriverVer=03/02/2002,03.02.2002.118
+
+
+[DestinationDirs]
+DefaultDestDir         = 11
+hpVisualizeFX.Miniport = 12  ; drivers
+hpVisualizeFX.Miniport.copy = 12  ; drivers
+hpVisualizeFX.Miniport.del = 12  ; drivers
+hpVisualizeFX.diags = 10,HPDiag  ; \Winnt\HPDiag
+hpVisualizeFX.diags.copy = 10,HPDiag  ; \Winnt\HPDiag
+hpVisualizeFX.diags.del = 10,HPDiag  ; \Winnt\HPDiag
+
+;
+; Driver information
+;
+
+[Manufacturer]
+%Mfg% = Mfg.HP
+
+; The Device section
+[Mfg.HP]
+Hewlett-Packard VisualizeFX Series Video = hpVisualizeFX, PCI\VEN_103C&DEV_100A&SUBSYS_10D4103C&REV_80, PCI\VEN_103C&DEV_100A&SUBSYS_10D5103C&REV_80, PCI\VEN_103C&DEV_100A&SUBSYS_10D6103C&REV_80, PCI\VEN_103C&DEV_100A&SUBSYS_10D7103C&REV_80, PCI\VEN_103C&DEV_100A&SUBSYS_10D8103C&REV_80
+
+[hpVisualizeFX.Startup.del]
+HpVisIni.exe,,,0x0001000
+
+[hpVisualizeFX.Startup.copy]
+HpVisIni.exe,,,0x0000000
+
+
+;
+; Service Installation
+;
+
+[hpVisualizeFX.Services]
+AddService = hpVisualizeFX, 0x00000002, hpVisualizeFX_Service_Inst, hpVisualizeFX_EventLog_Inst
+
+[hpVisualizeFX_Service_Inst]
+ServiceType    = 1                  ; SERVICE_KERNEL_DRIVER
+StartType      = 1                  ; SERVICE_SYSTEM_START
+ErrorControl   = 0                  ; SERVICE_ERROR_IGNORE
+LoadOrderGroup = Video
+ServiceBinary  = %12%\hpfxlmp.sys
+
+[hpVisualizeFX_EventLog_Inst]
+AddReg = hpVisualizeFX_EventLog_AddReg
+
+[hpVisualizeFX_EventLog_AddReg]
+HKR,,EventMessageFile,0x00020000,%SystemRoot%\System32\IoLogMsg.dll;%SystemRoot%\System32\drivers\hpfxlmp.sys
+HKR,,TypesSupported,0x00010001,7
+
+
+;
+; Software Installation
+;
+
+[hpVisualizeFX.SoftwareSettings]
+AddReg = hpVisualizeFX_OglIcd_SoftwareDeviceSettings
+AddReg = hpVisualizeFX_OS_SoftwareDeviceSettings
+AddReg = hpVisualizeFX_ShellExtensionSettings
+AddReg = hpVisualizeFX_DefaultDriverConfig
+AddReg = hpVisualizeFX_PTCProE_config
+AddReg = hpVisualizeFX_PTCOther_config
+AddReg = hpVisualizeFX_AVS_config
+AddReg = hpVisualizeFX_Catia_config
+AddReg = hpVisualizeFX_CATWeb_config
+AddReg = hpVisualizeFX_Unigraphics_config
+AddReg = hpVisualizeFX_SDRC_config
+AddReg = hpVisualizeFX_SolidDesigner_config
+AddReg = hpVisualizeFX_SolidWorks_config
+AddReg = hpVisualizeFX_SoftImage_config
+AddReg = hpVisualizeFX_3DStudioMax_config
+AddReg = hpVisualizeFX_LightWave3D_config
+AddReg = hpVisualizeFX_Alias|WavefrontMaya_config
+AddReg = hpVisualizeFX_Alias|WavefrontStudioTools_config
+AddReg = hpVisualizeFX_Alias|WavefrontSpider_config
+AddReg = hpVisualizeFX_Compatibility_config
+AddReg = hpVisualizeFX_MaxPerformance_config
+AddReg = hpVisualizeFX_Deneb_config
+AddReg = hpVisualizeFX_EAI_config
+AddReg = hpVisualizeFX_AutodeskInventor_config
+AddReg = hpVisualizeFX_SolidEdge_config
+AddReg = hpVisualizeFX_Opticore_config
+AddReg = hpVisualizeFX_Houdini_config
+AddReg = hpVisualizeFX_cleanup
+
+[hpVisualizeFX_DefaultDriverConfig]
+HKLM, %DriverConfig%, Config,					%REG_SZ%,			*Compatibility Mode
+HKLM, %DriverConfig%, GammaBlue,				%REG_DWORD%,		0x64
+HKLM, %DriverConfig%, GammaGreen,				%REG_DWORD%,		0x64
+HKLM, %DriverConfig%, GammaRed,					%REG_DWORD%,		0x64
+HKLM, %DriverConfig%, AllowGammaPage,			%REG_SZ%,			TRUE
+HKLM, %DriverConfig%, AllowOptionsPage,			%REG_SZ%,			TRUE
+HKLM, %DriverConfig%, AllowUserConfigs,			%REG_SZ%,			TRUE
+HKLM, %DriverConfig%, LockSliders,				%REG_SZ%,			TRUE
+
+;
+; The DefaultDriverConfig and the "*Compatibility Mode" config 
+; MUST have all registry variables defined that can affect ANY 
+; application. Other application configs need only define registry 
+; variables which are different than the compatibility mode setting. 
+; When you hit apply in the Display Properties Options panel, it 
+; will first apply the compatibility mode config and then apply the 
+; intended configuration. By first applying compatibility mode, it 
+; ensures that all registry variables are set to known values so 
+; you don't inherit the previous config's value for any variable 
+; not referenced in the new config.
+;
+; If a config or a registry variable becomes obsolete please
+; add it to the hpVisualizeFX_cleanup section found below
+; When HpVisIni sees something in the remove part of the registry
+; It will automatically attempt to remove those configs/variables
+; from the registry. Decided to do it this way because INF cannot
+; Find all the users properly, nor can it remove the directory nodes
+; 
+
+HKLM, %DriverConfig%, NoTearing,				%REG_SZ%,			FALSE
+HKLM, %DriverConfig%, FastBufferSwaps,			%REG_SZ%,			FALSE
+HKLM, %DriverConfig%, EnableFastImageClear,		%REG_SZ%,			FALSE
+HKLM, %DriverConfig%, EnableFastZClear,			%REG_SZ%,			FALSE
+HKLM, %DriverConfig%, HPOGL_LIGHTING_SPACE,		%REG_SZ%,			OC
+HKLM, %DriverConfig%, HPOGL_OPTIMIZE_DL_EXECUTION,	%REG_SZ%,		FALSE
+HKLM, %DriverConfig%, SHADOW_VAPI_STATE,		%REG_SZ%,			FALSE
+HKLM, %DriverConfig%, DrawAllGdiBuffers,		%REG_SZ%,			FALSE
+HKLM, %DriverConfig%, StereoSyncEnabled,		%REG_SZ%,			FALSE
+HKLM, %DriverConfig%, ACCUM_AUTO_RETURN,		%REG_SZ%,			FALSE
+HKLM, %DriverConfig%, RenderQuadBowties,		%REG_SZ%,			FALSE
+HKLM, %DriverConfig%, NO_OGL_CLIP,				%REG_SZ%,			FALSE
+HKLM, %DriverConfig%, SoftImageOverlay,			%REG_SZ%,			FALSE
+HKLM, %DriverConfig%, NUM_USER_CDBUFFERS,		%REG_DWORD%,		3
+HKLM, %DriverConfig%, FLAT_COLORMAT_FIX,		%REG_SZ%,			FALSE
+HKLM, %DriverConfig%, MS_Conformant_Overlays,	%REG_SZ%,			TRUE
+HKLM, %DriverConfig%, DISABLE_PGON_LINE_INTLK,	%REG_SZ%,			FALSE
+HKLM, %DriverConfig%, HPOGL_FORCE_SCENEAA,		%REG_SZ%,			FALSE
+HKLM, %DriverConfig%, HPOGL_TEX_VPC_1, 			%REG_DWORD%,		0x04040606
+
+
+[hpVisualizeFX_PTCProE_config]
+HKLM, %Configs%\PTC ProE, NoTearing,               				%REG_SZ%,       FALSE
+HKLM, %Configs%\PTC ProE, FastBufferSwaps,         				%REG_SZ%,       TRUE
+HKLM, %Configs%\PTC ProE, EnableFastImageClear,					%REG_SZ%,		TRUE
+HKLM, %Configs%\PTC ProE, EnableFastZClear,						%REG_SZ%,		TRUE
+HKLM, %Configs%\PTC ProE, HPOGL_LIGHTING_SPACE,        			%REG_SZ%,       OC
+HKLM, %Configs%\PTC ProE, HPOGL_OPTIMIZE_DL_EXECUTION,			%REG_SZ%,		FALSE
+HKLM, %Configs%\PTC ProE, SHADOW_VAPI_STATE,					%REG_SZ%,		FALSE
+HKLM, %Configs%\PTC ProE, DrawAllGdiBuffers,					%REG_SZ%,		FALSE
+HKLM, %Configs%\PTC ProE, StereoSyncEnabled,					%REG_SZ%,		FALSE
+HKLM, %Configs%\PTC ProE, ACCUM_AUTO_RETURN,					%REG_SZ%,		FALSE
+HKLM, %Configs%\PTC ProE, RenderQuadBowties,   					%REG_SZ%,       FALSE
+HKLM, %Configs%\PTC ProE, NO_OGL_CLIP, 	                        %REG_SZ%,       FALSE
+HKLM, %Configs%\PTC ProE, SoftImageOverlay,						%REG_SZ%,		FALSE
+HKLM, %Configs%\PTC ProE, NUM_USER_CDBUFFERS,					%REG_DWORD%,	8
+
+[hpVisualizeFX_PTCOther_config]
+HKLM, %Configs%\PTC Other Apps, NoTearing,               		%REG_SZ%,       FALSE
+HKLM, %Configs%\PTC Other Apps, FastBufferSwaps,         		%REG_SZ%,       FALSE
+HKLM, %Configs%\PTC Other Apps, EnableFastImageClear,			%REG_SZ%,		FALSE
+HKLM, %Configs%\PTC Other Apps, EnableFastZClear,				%REG_SZ%,		FALSE
+HKLM, %Configs%\PTC Other Apps, HPOGL_LIGHTING_SPACE,       	%REG_SZ%,       OC
+HKLM, %Configs%\PTC Other Apps, HPOGL_OPTIMIZE_DL_EXECUTION,	%REG_SZ%,		FALSE
+HKLM, %Configs%\PTC Other Apps, SHADOW_VAPI_STATE,				%REG_SZ%,		FALSE
+HKLM, %Configs%\PTC Other Apps, DrawAllGdiBuffers,				%REG_SZ%,		FALSE
+HKLM, %Configs%\PTC Other Apps, StereoSyncEnabled,				%REG_SZ%,		FALSE
+HKLM, %Configs%\PTC Other Apps, ACCUM_AUTO_RETURN,				%REG_SZ%,		FALSE
+HKLM, %Configs%\PTC Other Apps, RenderQuadBowties,   			%REG_SZ%,       FALSE
+HKLM, %Configs%\PTC Other Apps, NO_OGL_CLIP, 	                %REG_SZ%,       FALSE
+HKLM, %Configs%\PTC Other Apps, SoftImageOverlay,				%REG_SZ%,		FALSE
+HKLM, %Configs%\PTC Other Apps, MS_Conformant_Overlays,			%REG_SZ%,		FALSE
+
+[hpVisualizeFX_AVS_config]
+HKLM, %Configs%\AVS, NoTearing,               				%REG_SZ%,       FALSE
+HKLM, %Configs%\AVS, FastBufferSwaps,         				%REG_SZ%,       TRUE
+HKLM, %Configs%\AVS, EnableFastImageClear,					%REG_SZ%,		TRUE
+HKLM, %Configs%\AVS, EnableFastZClear,						%REG_SZ%,		TRUE
+HKLM, %Configs%\AVS, HPOGL_LIGHTING_SPACE,        			%REG_SZ%,       OC
+HKLM, %Configs%\AVS, HPOGL_OPTIMIZE_DL_EXECUTION,			%REG_SZ%,		FALSE
+HKLM, %Configs%\AVS, SHADOW_VAPI_STATE,						%REG_SZ%,		FALSE
+HKLM, %Configs%\AVS, DrawAllGdiBuffers,						%REG_SZ%,		TRUE
+HKLM, %Configs%\AVS, StereoSyncEnabled,						%REG_SZ%,		FALSE
+HKLM, %Configs%\AVS, ACCUM_AUTO_RETURN,						%REG_SZ%,		FALSE
+HKLM, %Configs%\AVS, RenderQuadBowties,   					%REG_SZ%,       FALSE
+HKLM, %Configs%\AVS, NO_OGL_CLIP, 	                        %REG_SZ%,       FALSE
+HKLM, %Configs%\AVS, SoftImageOverlay,						%REG_SZ%,		FALSE
+
+[hpVisualizeFX_Catia_config]
+HKLM, %Configs%\CATIA, NoTearing,               				%REG_SZ%,       FALSE
+HKLM, %Configs%\CATIA, FastBufferSwaps,         				%REG_SZ%,       FALSE
+HKLM, %Configs%\CATIA, EnableFastImageClear,					%REG_SZ%,		FALSE
+HKLM, %Configs%\CATIA, EnableFastZClear,						%REG_SZ%,		FALSE
+HKLM, %Configs%\CATIA, HPOGL_LIGHTING_SPACE,        			%REG_SZ%,       OC
+HKLM, %Configs%\CATIA, HPOGL_OPTIMIZE_DL_EXECUTION,				%REG_SZ%,		FALSE
+HKLM, %Configs%\CATIA, SHADOW_VAPI_STATE,						%REG_SZ%,		FALSE
+HKLM, %Configs%\CATIA, DrawAllGdiBuffers,						%REG_SZ%,		FALSE
+HKLM, %Configs%\CATIA, StereoSyncEnabled,						%REG_SZ%,		FALSE
+HKLM, %Configs%\CATIA, ACCUM_AUTO_RETURN,						%REG_SZ%,		FALSE
+HKLM, %Configs%\CATIA, RenderQuadBowties,   					%REG_SZ%,       FALSE
+HKLM, %Configs%\CATIA, NO_OGL_CLIP, 	                        %REG_SZ%,       FALSE
+HKLM, %Configs%\CATIA, SoftImageOverlay,						%REG_SZ%,		FALSE
+
+[hpVisualizeFX_CATWeb_config]
+HKLM, %Configs%\CATWeb, NoTearing,               				%REG_SZ%,       FALSE
+HKLM, %Configs%\CATWeb, FastBufferSwaps,         				%REG_SZ%,       TRUE
+HKLM, %Configs%\CATWeb, EnableFastImageClear,					%REG_SZ%,		TRUE
+HKLM, %Configs%\CATWeb, EnableFastZClear,						%REG_SZ%,		TRUE
+HKLM, %Configs%\CATWeb, HPOGL_LIGHTING_SPACE,        			%REG_SZ%,       OC
+HKLM, %Configs%\CATWeb, HPOGL_OPTIMIZE_DL_EXECUTION,			%REG_SZ%,		FALSE
+HKLM, %Configs%\CATWeb, SHADOW_VAPI_STATE,						%REG_SZ%,		FALSE
+HKLM, %Configs%\CATWeb, DrawAllGdiBuffers,						%REG_SZ%,		TRUE
+HKLM, %Configs%\CATWeb, StereoSyncEnabled,						%REG_SZ%,		FALSE
+HKLM, %Configs%\CATWeb, ACCUM_AUTO_RETURN,						%REG_SZ%,		FALSE
+HKLM, %Configs%\CATWeb, RenderQuadBowties,   					%REG_SZ%,       FALSE
+HKLM, %Configs%\CATWeb, NO_OGL_CLIP, 	                        %REG_SZ%,       FALSE
+HKLM, %Configs%\CATWeb, SoftImageOverlay,						%REG_SZ%,		FALSE
+
+[hpVisualizeFX_Unigraphics_config]
+HKLM, %Configs%\Unigraphics, FastBufferSwaps,					%REG_SZ%,		FALSE
+HKLM, %Configs%\Unigraphics, EnableFastImageClear,				%REG_SZ%,		FALSE
+HKLM, %Configs%\Unigraphics, EnableFastZClear,					%REG_SZ%,		FALSE
+HKLM, %Configs%\Unigraphics, HPOGL_LIGHTING_SPACE,        		%REG_SZ%,       DEFAULT
+HKLM, %Configs%\Unigraphics, DrawAllGdiBuffers,					%REG_SZ%,		FALSE
+HKLM, %Configs%\Unigraphics, HPOGL_TEX_VPC_1,					%REG_DWORD%,	0x04040806
+
+[hpVisualizeFX_Deneb_config]
+HKLM, %Configs%\Deneb, NoTearing,               				%REG_SZ%,       FALSE
+HKLM, %Configs%\Deneb, FastBufferSwaps,         				%REG_SZ%,       FALSE
+HKLM, %Configs%\Deneb, EnableFastImageClear,					%REG_SZ%,		FALSE
+HKLM, %Configs%\Deneb, EnableFastZClear,						%REG_SZ%,		FALSE
+HKLM, %Configs%\Deneb, HPOGL_LIGHTING_SPACE,        			%REG_SZ%,       OC
+HKLM, %Configs%\Deneb, HPOGL_OPTIMIZE_DL_EXECUTION,				%REG_SZ%,		FALSE
+HKLM, %Configs%\Deneb, SHADOW_VAPI_STATE,						%REG_SZ%,		FALSE
+HKLM, %Configs%\Deneb, DrawAllGdiBuffers,						%REG_SZ%,		FALSE
+HKLM, %Configs%\Deneb, StereoSyncEnabled,						%REG_SZ%,		FALSE
+HKLM, %Configs%\Deneb, ACCUM_AUTO_RETURN,						%REG_SZ%,		FALSE
+HKLM, %Configs%\Deneb, RenderQuadBowties,   					%REG_SZ%,       FALSE
+HKLM, %Configs%\Deneb, NO_OGL_CLIP, 	                        %REG_SZ%,       FALSE
+HKLM, %Configs%\Deneb, SoftImageOverlay,						%REG_SZ%,		FALSE
+
+[hpVisualizeFX_SDRC_config]
+HKLM, %Configs%\SDRC Ideas Masters Series, NoTearing,		%REG_SZ%,       FALSE
+HKLM, %Configs%\SDRC Ideas Masters Series, FastBufferSwaps,	%REG_SZ%,       FALSE
+HKLM, %Configs%\SDRC Ideas Masters Series, EnableFastImageClear,	%REG_SZ%,	FALSE
+HKLM, %Configs%\SDRC Ideas Masters Series, EnableFastZClear,		%REG_SZ%,	FALSE
+HKLM, %Configs%\SDRC Ideas Masters Series, HPOGL_LIGHTING_SPACE,	%REG_SZ%, DEFAULT
+HKLM, %Configs%\SDRC Ideas Masters Series, HPOGL_OPTIMIZE_DL_EXECUTION,	%REG_SZ%,		FALSE
+HKLM, %Configs%\SDRC Ideas Masters Series, SHADOW_VAPI_STATE,	%REG_SZ%,		TRUE
+HKLM, %Configs%\SDRC Ideas Masters Series, DrawAllGdiBuffers,	%REG_SZ%,		FALSE
+HKLM, %Configs%\SDRC Ideas Masters Series, StereoSyncEnabled,	%REG_SZ%,		FALSE
+HKLM, %Configs%\SDRC Ideas Masters Series, ACCUM_AUTO_RETURN,	%REG_SZ%,		FALSE
+HKLM, %Configs%\SDRC Ideas Masters Series, RenderQuadBowties,	%REG_SZ%,       FALSE
+HKLM, %Configs%\SDRC Ideas Masters Series, NO_OGL_CLIP, 	    %REG_SZ%,       FALSE
+HKLM, %Configs%\SDRC Ideas Masters Series, SoftImageOverlay,	%REG_SZ%,		FALSE
+
+[hpVisualizeFX_SolidDesigner_config]
+HKLM, %Configs%\CoCreate SolidDesigner, NoTearing, 				%REG_SZ%,       FALSE
+HKLM, %Configs%\CoCreate SolidDesigner, FastBufferSwaps, 		%REG_SZ%,       FALSE
+HKLM, %Configs%\CoCreate SolidDesigner, EnableFastImageClear,	%REG_SZ%,		FALSE
+HKLM, %Configs%\CoCreate SolidDesigner, EnableFastZClear,		%REG_SZ%,		FALSE
+HKLM, %Configs%\CoCreate SolidDesigner, HPOGL_LIGHTING_SPACE,	%REG_SZ%,       OC
+HKLM, %Configs%\CoCreate SolidDesigner, HPOGL_OPTIMIZE_DL_EXECUTION,	%REG_SZ%,		FALSE
+HKLM, %Configs%\CoCreate SolidDesigner, SHADOW_VAPI_STATE,		%REG_SZ%,		FALSE
+HKLM, %Configs%\CoCreate SolidDesigner, DrawAllGdiBuffers,		%REG_SZ%,		FALSE
+HKLM, %Configs%\CoCreate SolidDesigner, StereoSyncEnabled,		%REG_SZ%,		FALSE
+HKLM, %Configs%\CoCreate SolidDesigner, ACCUM_AUTO_RETURN,		%REG_SZ%,		FALSE
+HKLM, %Configs%\CoCreate SolidDesigner, RenderQuadBowties,  	%REG_SZ%,       FALSE
+HKLM, %Configs%\CoCreate SolidDesigner, NO_OGL_CLIP, 	        %REG_SZ%,       FALSE
+HKLM, %Configs%\CoCreate SolidDesigner, SoftImageOverlay,		%REG_SZ%,		FALSE
+
+;
+; SolidWorks uses unaccelerated GDI and thus must not use
+; FastBufferSwaps
+;
+[hpVisualizeFX_SolidWorks_config]
+HKLM, %Configs%\SolidWorks, FastBufferSwaps,         			%REG_SZ%,       FALSE
+HKLM, %Configs%\SolidWorks, DrawAllGdiBuffers,					%REG_SZ%,		FALSE
+
+[hpVisualizeFX_SoftImage_config]
+HKLM, %Configs%\SoftImage, NoTearing,               			%REG_SZ%,       FALSE
+HKLM, %Configs%\SoftImage, FastBufferSwaps,         			%REG_SZ%,       FALSE
+HKLM, %Configs%\SoftImage, EnableFastImageClear,				%REG_SZ%,		FALSE
+HKLM, %Configs%\SoftImage, EnableFastZClear,					%REG_SZ%,		FALSE
+HKLM, %Configs%\SoftImage, HPOGL_LIGHTING_SPACE,       			%REG_SZ%,       OC
+HKLM, %Configs%\SoftImage, HPOGL_OPTIMIZE_DL_EXECUTION,			%REG_SZ%,		FALSE
+HKLM, %Configs%\SoftImage, SHADOW_VAPI_STATE,					%REG_SZ%,		FALSE
+HKLM, %Configs%\SoftImage, DrawAllGdiBuffers,					%REG_SZ%,		FALSE
+HKLM, %Configs%\SoftImage, StereoSyncEnabled,					%REG_SZ%,		FALSE
+HKLM, %Configs%\SoftImage, ACCUM_AUTO_RETURN,					%REG_SZ%,		TRUE
+HKLM, %Configs%\SoftImage, RenderQuadBowties,   				%REG_SZ%,       FALSE
+HKLM, %Configs%\SoftImage, NO_OGL_CLIP, 	                    %REG_SZ%,       FALSE
+HKLM, %Configs%\SoftImage, SoftImageOverlay,					%REG_SZ%,		TRUE
+
+[hpVisualizeFX_3DStudioMax_config]
+HKLM, %Configs%\3D Studio Max, NoTearing,               		%REG_SZ%,       FALSE
+HKLM, %Configs%\3D Studio Max, FastBufferSwaps,         		%REG_SZ%,       FALSE
+HKLM, %Configs%\3D Studio Max, EnableFastImageClear,			%REG_SZ%,		FALSE
+HKLM, %Configs%\3D Studio Max, EnableFastZClear,				%REG_SZ%,		FALSE
+HKLM, %Configs%\3D Studio Max, HPOGL_LIGHTING_SPACE,    		%REG_SZ%,       OC
+HKLM, %Configs%\3D Studio Max, HPOGL_OPTIMIZE_DL_EXECUTION,		%REG_SZ%,		FALSE
+HKLM, %Configs%\3D Studio Max, SHADOW_VAPI_STATE,				%REG_SZ%,		FALSE
+HKLM, %Configs%\3D Studio Max, DrawAllGdiBuffers,				%REG_SZ%,		FALSE
+HKLM, %Configs%\3D Studio Max, StereoSyncEnabled,				%REG_SZ%,		FALSE
+HKLM, %Configs%\3D Studio Max, ACCUM_AUTO_RETURN,				%REG_SZ%,		FALSE
+HKLM, %Configs%\3D Studio Max, RenderQuadBowties,   			%REG_SZ%,       FALSE
+HKLM, %Configs%\3D Studio Max, NO_OGL_CLIP, 	                %REG_SZ%,       TRUE
+HKLM, %Configs%\3D Studio Max, SoftImageOverlay,				%REG_SZ%,		FALSE
+HKLM, %Configs%\3D Studio Max, DISABLE_PGON_LINE_INTLK,			%REG_SZ%,		TRUE
+
+[hpVisualizeFX_LightWave3D_config]
+HKLM, %Configs%\LightWave 3D, NoTearing,           				%REG_SZ%,       FALSE
+HKLM, %Configs%\LightWave 3D, FastBufferSwaps,         			%REG_SZ%,       FALSE
+HKLM, %Configs%\LightWave 3D, EnableFastImageClear,				%REG_SZ%,		FALSE
+HKLM, %Configs%\LightWave 3D, EnableFastZClear,					%REG_SZ%,		FALSE
+HKLM, %Configs%\LightWave 3D, HPOGL_LIGHTING_SPACE,     		%REG_SZ%,       OC
+HKLM, %Configs%\LightWave 3D, HPOGL_OPTIMIZE_DL_EXECUTION,		%REG_SZ%,		FALSE
+HKLM, %Configs%\LightWave 3D, SHADOW_VAPI_STATE,				%REG_SZ%,		FALSE
+HKLM, %Configs%\LightWave 3D, DrawAllGdiBuffers,				%REG_SZ%,		FALSE
+HKLM, %Configs%\LightWave 3D, StereoSyncEnabled,				%REG_SZ%,		FALSE
+HKLM, %Configs%\LightWave 3D, ACCUM_AUTO_RETURN,				%REG_SZ%,		FALSE
+HKLM, %Configs%\LightWave 3D, RenderQuadBowties,   				%REG_SZ%,       FALSE
+HKLM, %Configs%\LightWave 3D, NO_OGL_CLIP, 	                    %REG_SZ%,       FALSE
+HKLM, %Configs%\LightWave 3D, SoftImageOverlay,					%REG_SZ%,		FALSE
+
+[hpVisualizeFX_Houdini_config]
+HKLM, %Configs%\Houdini, FastBufferSwaps,        	%REG_SZ%,       TRUE
+HKLM, %Configs%\Houdini, EnableFastImageClear,		%REG_SZ%,		TRUE
+HKLM, %Configs%\Houdini, EnableFastZClear,			%REG_SZ%,		TRUE
+HKLM, %Configs%\Houdini, DrawAllGdiBuffers,		%REG_SZ%,		TRUE
+
+[hpVisualizeFX_Alias|WavefrontMaya_config]
+HKLM, %Configs%\Alias|Wavefront Maya, FastBufferSwaps,        	%REG_SZ%,       FALSE
+HKLM, %Configs%\Alias|Wavefront Maya, EnableFastImageClear,		%REG_SZ%,		FALSE
+HKLM, %Configs%\Alias|Wavefront Maya, EnableFastZClear,			%REG_SZ%,		FALSE
+HKLM, %Configs%\Alias|Wavefront Maya, DrawAllGdiBuffers,		%REG_SZ%,		FALSE
+
+[hpVisualizeFX_Alias|WavefrontStudioTools_config]
+HKLM, %Configs%\Alias|Wavefront StudioTools, FastBufferSwaps,        	%REG_SZ%,       TRUE
+HKLM, %Configs%\Alias|Wavefront StudioTools, EnableFastImageClear,		%REG_SZ%,		TRUE
+HKLM, %Configs%\Alias|Wavefront StudioTools, EnableFastZClear,			%REG_SZ%,		TRUE
+HKLM, %Configs%\Alias|Wavefront StudioTools, DrawAllGdiBuffers,		%REG_SZ%,		TRUE
+
+[hpVisualizeFX_Alias|WavefrontSpider_config]
+HKLM, %Configs%\Alias|Wavefront Spider, FLAT_COLORMAT_FIX,		%REG_SZ%,		TRUE
+
+[hpVisualizeFX_Compatibility_config]
+HKLM, %Configs%\*Compatibility Mode, NoTearing,    				%REG_SZ%,       FALSE
+HKLM, %Configs%\*Compatibility Mode, FastBufferSwaps, 			%REG_SZ%,       FALSE
+HKLM, %Configs%\*Compatibility Mode, EnableFastImageClear,		%REG_SZ%,		FALSE
+HKLM, %Configs%\*Compatibility Mode, EnableFastZClear,			%REG_SZ%,		FALSE
+HKLM, %Configs%\*Compatibility Mode, HPOGL_LIGHTING_SPACE, 		%REG_SZ%,       OC
+HKLM, %Configs%\*Compatibility Mode, HPOGL_OPTIMIZE_DL_EXECUTION,	%REG_SZ%,	FALSE
+HKLM, %Configs%\*Compatibility Mode, SHADOW_VAPI_STATE,			%REG_SZ%,		FALSE
+HKLM, %Configs%\*Compatibility Mode, DrawAllGdiBuffers,			%REG_SZ%,		FALSE
+HKLM, %Configs%\*Compatibility Mode, StereoSyncEnabled,			%REG_SZ%,		FALSE
+HKLM, %Configs%\*Compatibility Mode, ACCUM_AUTO_RETURN,			%REG_SZ%,		FALSE
+HKLM, %Configs%\*Compatibility Mode, RenderQuadBowties,   		%REG_SZ%,       FALSE
+HKLM, %Configs%\*Compatibility Mode, NO_OGL_CLIP, 	            %REG_SZ%,       FALSE
+HKLM, %Configs%\*Compatibility Mode, SoftImageOverlay,			%REG_SZ%,		FALSE
+HKLM, %Configs%\*Compatibility Mode, NUM_USER_CDBUFFERS,		%REG_DWORD%,	3
+HKLM, %Configs%\*Compatibility Mode, FLAT_COLORMAT_FIX,			%REG_SZ%,		FALSE
+HKLM, %Configs%\*Compatibility Mode, MS_Conformant_Overlays,	%REG_SZ%,		TRUE
+HKLM, %Configs%\*Compatibility Mode, DISABLE_PGON_LINE_INTLK,	%REG_SZ%,		FALSE
+HKLM, %Configs%\*Compatibility Mode, HPOGL_FORCE_SCENEAA,  		%REG_SZ%,       FALSE
+HKLM, %Configs%\*Compatibility Mode, HPOGL_TEX_VPC_1,  			%REG_DWORD%,	0x04040606
+
+[hpVisualizeFX_MaxPerformance_config]
+HKLM, %Configs%\*Max Performance Mode, NoTearing,     			%REG_SZ%,       FALSE
+HKLM, %Configs%\*Max Performance Mode, FastBufferSwaps, 		%REG_SZ%,       TRUE
+HKLM, %Configs%\*Max Performance Mode, EnableFastImageClear,	%REG_SZ%,		TRUE
+HKLM, %Configs%\*Max Performance Mode, EnableFastZClear,		%REG_SZ%,		TRUE
+HKLM, %Configs%\*Max Performance Mode, HPOGL_LIGHTING_SPACE,	%REG_SZ%,       OC
+HKLM, %Configs%\*Max Performance Mode, HPOGL_OPTIMIZE_DL_EXECUTION,	%REG_SZ%,	TRUE
+HKLM, %Configs%\*Max Performance Mode, SHADOW_VAPI_STATE,		%REG_SZ%,		FALSE
+HKLM, %Configs%\*Max Performance Mode, DrawAllGdiBuffers,		%REG_SZ%,		TRUE
+HKLM, %Configs%\*Max Performance Mode, StereoSyncEnabled,		%REG_SZ%,		FALSE
+HKLM, %Configs%\*Max Performance Mode, ACCUM_AUTO_RETURN,		%REG_SZ%,		FALSE
+HKLM, %Configs%\*Max Performance Mode, RenderQuadBowties,   	%REG_SZ%,       FALSE
+HKLM, %Configs%\*Max Performance Mode, NO_OGL_CLIP, 	        %REG_SZ%,       FALSE
+HKLM, %Configs%\*Max Performance Mode, SoftImageOverlay,		%REG_SZ%,		FALSE
+HKLM, %Configs%\*Max Performance Mode, NUM_USER_CDBUFFERS,		%REG_DWORD%,	8
+
+[hpVisualizeFX_EAI_config]
+HKLM, %Configs%\EAI VisView/VisMockUp, NoTearing,  				%REG_SZ%,       FALSE
+HKLM, %Configs%\EAI VisView/VisMockUp, FastBufferSwaps,     	%REG_SZ%,       TRUE
+HKLM, %Configs%\EAI VisView/VisMockUp, EnableFastImageClear,	%REG_SZ%,		TRUE
+HKLM, %Configs%\EAI VisView/VisMockUp, EnableFastZClear,		%REG_SZ%,		TRUE
+HKLM, %Configs%\EAI VisView/VisMockUp, HPOGL_LIGHTING_SPACE,	%REG_SZ%,       OC
+HKLM, %Configs%\EAI VisView/VisMockUp, HPOGL_OPTIMIZE_DL_EXECUTION,	%REG_SZ%,	FALSE
+HKLM, %Configs%\EAI VisView/VisMockUp, SHADOW_VAPI_STATE,		%REG_SZ%,		FALSE
+HKLM, %Configs%\EAI VisView/VisMockUp, DrawAllGdiBuffers,		%REG_SZ%,		TRUE
+HKLM, %Configs%\EAI VisView/VisMockUp, StereoSyncEnabled,		%REG_SZ%,		FALSE
+HKLM, %Configs%\EAI VisView/VisMockUp, ACCUM_AUTO_RETURN,		%REG_SZ%,		FALSE
+HKLM, %Configs%\EAI VisView/VisMockUp, RenderQuadBowties,   	%REG_SZ%,       FALSE
+HKLM, %Configs%\EAI VisView/VisMockUp, NO_OGL_CLIP, 	        %REG_SZ%,       FALSE
+HKLM, %Configs%\EAI VisView/VisMockUp, SoftImageOverlay,		%REG_SZ%,		FALSE
+
+[hpVisualizeFX_AutodeskInventor_config]
+HKLM, %Configs%\Autodesk Inventor, NoTearing,              		%REG_SZ%,       FALSE
+HKLM, %Configs%\Autodesk Inventor, FastBufferSwaps,        		%REG_SZ%,       FALSE
+HKLM, %Configs%\Autodesk Inventor, EnableFastImageClear,		%REG_SZ%,		FALSE
+HKLM, %Configs%\Autodesk Inventor, EnableFastZClear,			%REG_SZ%,		FALSE
+HKLM, %Configs%\Autodesk Inventor, HPOGL_LIGHTING_SPACE,		%REG_SZ%,       OC
+HKLM, %Configs%\Autodesk Inventor, HPOGL_OPTIMIZE_DL_EXECUTION,	%REG_SZ%,		FALSE
+HKLM, %Configs%\Autodesk Inventor, SHADOW_VAPI_STATE,			%REG_SZ%,		FALSE
+HKLM, %Configs%\Autodesk Inventor, DrawAllGdiBuffers,			%REG_SZ%,		FALSE
+HKLM, %Configs%\Autodesk Inventor, StereoSyncEnabled,			%REG_SZ%,		FALSE
+HKLM, %Configs%\Autodesk Inventor, ACCUM_AUTO_RETURN,			%REG_SZ%,		FALSE
+HKLM, %Configs%\Autodesk Inventor, RenderQuadBowties,   		%REG_SZ%,       FALSE
+HKLM, %Configs%\Autodesk Inventor, NO_OGL_CLIP, 	            %REG_SZ%,       FALSE
+HKLM, %Configs%\Autodesk Inventor, SoftImageOverlay,			%REG_SZ%,		FALSE
+
+[hpVisualizeFX_SolidEdge_config]
+HKLM, %Configs%\Solid Edge, HPOGL_LIGHTING_SPACE,      			%REG_SZ%,       DEFAULT
+HKLM, %Configs%\Solid Edge, MS_Conformant_Overlays,				%REG_SZ%,		FALSE
+HKLM, %Configs%\Solid Edge, HPOGL_TEX_VPC_1,					%REG_DWORD%,	0x04040806
+
+[hpVisualizeFX_Opticore_config]
+HKLM, %Configs%\Opticore, HPOGL_LIGHTING_SPACE,      			%REG_SZ%,       EC
+HKLM, %Configs%\Opticore, HPOGL_TEX_VPC_1,						%REG_DWORD%,	0x04040806
+
+[hpVisualizeFX_cleanup]
+HKLM, %Remove%,3D Studio Max High Performance
+
+
+[hpVisualizeFX_OglIcd_SoftwareDeviceSettings]
+HKLM, SOFTWARE\Microsoft\Windows NT\CurrentVersion\OpenGLDrivers, hpfxlgdi, %REG_SZ%, hpfxlicd
+
+[hpVisualizeFX_ShellExtensionSettings]
+HKLM, SOFTWARE\Classes\CLSID\{37935F80-FC88-11d0-A381-0060B000B2C4}, , %REG_SZ%, HP VisualizeFX Display Applet Extension
+HKLM, SOFTWARE\Classes\CLSID\{37935F80-FC88-11d0-A381-0060B000B2C4}\InProcServer32, , %REG_SZ%, hpfxltab.dll
+HKLM, SOFTWARE\Microsoft\Windows\CurrentVersion\Run, HP Visualize Init, %REG_SZ%, %11%\HpVisIni.exe
+HKLM, SOFTWARE\Classes\CLSID\{37935F80-FC88-11d0-A381-0060B000B2C4}\InProcServer32, ThreadingModel, %REG_SZ%, Apartment
+HKLM, SOFTWARE\Microsoft\Windows\CurrentVersion\Shell Extensions\Approved, {37935F80-FC88-11d0-A381-0060B000B2C4},  %REG_SZ%, HP VisualizeFX Display Applet Extension
+HKLM, SOFTWARE\Microsoft\Windows\CurrentVersion\Controls Folder\Display\Shellex\PropertySheetHandlers\HP VisualizeFX CPL Extension, , %REG_SZ%, {37935F80-FC88-11d0-A381-0060B000B2C4}
+
+;
+; Source file information
+;
+
+[SourceDisksNames.x86]
+1 = %DiskId%,,,""
+
+
+
+[Strings]
+
+;
+; Non-Localizable Strings
+;
+
+REG_SZ         = 0x00000000
+REG_MULTI_SZ   = 0x00010000
+REG_EXPAND_SZ  = 0x00020000
+REG_BINARY     = 0x00000001
+REG_DWORD      = 0x00010001
+SERVICEROOT    = System\CurrentControlSet\Services
+
+;
+; Localizable Strings
+;
+
+DiskId="Hewlett-Packard VisualizeFX Installation DISK (VIDEO)"
+DeviceConfig="SYSTEM\CurrentControlSet\Services\hpVisualizeFX\Device0"
+DriverConfig="SYSTEM\CurrentControlSet\Services\hpVisualizeFX\OpenGL\DriverConfig"
+Configs="SYSTEM\CurrentControlSet\Services\hpVisualizeFX\OpenGL\Configs"
+Remove="SYSTEM\CurrentControlSet\Services\hpVisualizeFX\OpenGL\Remove"
+Mfg="Hewlett-Packard Company"
+
+
+[hpVisualizeFX]
+DelFiles=hpVisualizeFX.Miniport.del, hpVisualizeFX.Display.del, hpVisualizeFX.OglIcd.del, hpVisualizeFX.D3D.del, hpVisualizeFX.Startup.del, hpVisualizeFX.diags.del
+CopyFiles=hpVisualizeFX.Miniport.copy, hpVisualizeFX.Display.copy, hpVisualizeFX.OglIcd.copy, hpVisualizeFX.Startup.copy, hpVisualizeFX.D3D.copy, hpVisualizeFX.diags.copy
+
+
+[hpVisualizeFX.Miniport.del]
+hpfxlmp.sys,,,0x0001000
+
+[hpVisualizeFX.Display.del]
+hpfxlgdi.dll,,,0x0001000
+hpfxlut.dll,,,0x0001000
+hpfxldd.dll,,,0x0001000
+
+[hpVisualizeFX.OglIcd.del]
+hpfxlicd.dll,,,0x0001000
+hpfxluds.dll,,,0x0001000
+hpfxlkds.dll,,,0x0001000
+hpfxltab.dll,,,0x0001000
+hpfxltab.hlp,,,0x0001000
+hpfxlrls.txt,,,0x0001000
+
+[hpVisualizeFX.diags.del]
+fx5diag.exe,,,0x0001000
+fx5crc.txt,,,0x0001000
+
+[hpVisualizeFX.D3D.del]
+hpfxld3d.dll,,,0x0001000
+
+
+[hpVisualizeFX.Miniport.copy]
+hpfxlmp.sys,hpfxlmp.w2k,,0x0000000
+
+[hpVisualizeFX.Display.copy]
+hpfxlgdi.dll,hpfxlgdi.w2k,,0x0000000
+hpfxlut.dll,hpfxlut.w2k,,0x0000000
+hpfxldd.dll,hpfxldd.w2k,,0x0000000
+
+[hpVisualizeFX.OglIcd.copy]
+hpfxlicd.dll,hpfxlicd.w2k,,0x0000000
+hpfxluds.dll,hpfxluds.w2k,,0x0000000
+hpfxlkds.dll,hpfxlkds.w2k,,0x0000000
+hpfxltab.dll,hpfxltb.w2k,,0x0000000
+hpfxltab.hlp,hpfxltbh.w2k,,0x0000000
+hpfxlrls.txt,hpfxlrls.w2k,,0x0000000
+
+[hpVisualizeFX.diags.copy]
+fx5diag.exe,fx5diag.w2k,,0x0000000
+fx5crc.txt,fx5crc.w2k,,0x0000000
+
+[hpVisualizeFX.D3D.copy]
+hpfxld3d.dll,,,0x0000000
+
+
+[hpVisualizeFX_OS_SoftwareDeviceSettings]
+; InstalledDisplayDriver MUST be a REG_MULTI_SZ type!!!
+HKR,, InstalledDisplayDrivers,			%REG_MULTI_SZ%,		hpfxlgdi
+HKR,, OpenGL.DriverName,				%REG_SZ%,		hpfxlkds.dll
+HKR,, OpenGL.EntryPoint,				%REG_SZ%,		fp14_init
+HKR,, VgaCompatible,					%REG_DWORD%,		0
+HKR,, HpUtils.DriverName,				%REG_SZ%,		hpfxlut.dll
+HKR,, HpUtils.EntryPoint,				%REG_SZ%,		HpUtilsInitInterface
+HKR,, DirectDraw.DriverName,			%REG_SZ%,		hpfxldd.dll
+HKR,, DirectDraw.EntryPoint,			%REG_SZ%,		fp12_init_if
+HKR,, Direct3D.DriverName,				%REG_SZ%,		hpfxld3d.dll
+HKR,, Direct3D.EntryPoint,				%REG_SZ%,		d3dInitInterface
+HKLM, SYSTEM\CurrentControlSet\Hardware Profiles\Current\System\CurrentControlSet\Enum\PCI\VEN_102B&DEV_0521&SUBSYS_100A103C&REV_03\4&131CB51&0&0001, CSConfigFlags, %REG_DWORD%, 0x1
+
+
+[SourceDisksFiles]
+HpVisIni.exe = 1
+hpfxlmp.w2k  = 1
+hpfxlgdi.w2k  = 1
+hpfxldd.w2k  = 1
+hpfxld3d.dll  = 1
+hpfxlicd.w2k     = 1
+hpfxluds.w2k  = 1
+hpfxlkds.w2k  = 1
+hpfxlut.w2k  = 1
+hpfxltb.w2k  = 1
+hpfxltbh.w2k  = 1
+hpfxlrls.w2k  = 1
+fx5diag.w2k  = 1
+fx5crc.w2k  = 1
+hpfxl.cat     = 1

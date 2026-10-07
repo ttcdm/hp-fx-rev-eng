@@ -81,6 +81,9 @@ int main(int argc, char **argv)
     bool export_image = true;
     enum demo_mesh_mode mesh_mode = MESH_ALL;
 
+    int width = 1920;
+    int height = 1080;
+
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-d") == 0 && i + 1 < argc) {
             fb_dev = argv[++i];
@@ -88,6 +91,10 @@ int main(int argc, char **argv)
             num_frames = atoi(argv[++i]);
         } else if (strcmp(argv[i], "-o") == 0 && i + 1 < argc) {
             ppm_out = argv[++i];
+        } else if (strcmp(argv[i], "-w") == 0 && i + 1 < argc) {
+            width = atoi(argv[++i]);
+        } else if (strcmp(argv[i], "-h") == 0 && i + 1 < argc) {
+            height = atoi(argv[++i]);
         } else if (strcmp(argv[i], "--torus") == 0) {
             mesh_mode = MESH_TORUS;
         } else if (strcmp(argv[i], "--sphere") == 0) {
@@ -102,6 +109,8 @@ int main(int argc, char **argv)
             printf("  -d <device>  Framebuffer device (default: /dev/fb0)\n");
             printf("  -f <frames>  Number of frames to render (default: 60)\n");
             printf("  -o <file>    Output screenshot file (default: hpfx_3d_render.ppm)\n");
+            printf("  -w <width>   Render width (default: 1920)\n");
+            printf("  -h <height>  Render height (default: 1080)\n");
             printf("  --torus      Render HP Diagnostic Torus mesh\n");
             printf("  --sphere     Render HP Diagnostic Sphere mesh\n");
             printf("  --cube       Render 3D reference Cube\n");
@@ -120,6 +129,8 @@ int main(int argc, char **argv)
         fprintf(stderr, "Fatal error: Failed to create 3D context\n");
         return 1;
     }
+
+    hpfx3d_resize(ctx, width, height);
 
     printf("[Demo] Resolution: %ux%u @ %ubpp (Pitch: %u bytes)\n",
            ctx->width, ctx->height, ctx->bpp, ctx->pitch);
@@ -154,8 +165,8 @@ int main(int argc, char **argv)
             hpfx3d_mat4_rotate_y(&ctx->modelview, angle_y * (3.14159265f / 180.0f));
             hpfx3d_update_mvp(ctx);
 
-            hpfx3d_draw_torus(ctx, 1.3f, 0.45f, 24, 20, 0x00e67e22);
-            total_triangles += (24 * 20 * 2);
+            hpfx3d_draw_torus(ctx, 1.3f, 0.45f, 36, 24, 0x00e67e22);
+            total_triangles += (36 * 24 * 2);
         } else if (mesh_mode == MESH_SPHERE) {
             /* Full Screen 3D Sphere (HP Diag Test #3) */
             hpfx3d_mat4_identity(&ctx->modelview);
@@ -164,8 +175,8 @@ int main(int argc, char **argv)
             hpfx3d_mat4_rotate_x(&ctx->modelview, 25.0f * (3.14159265f / 180.0f));
             hpfx3d_update_mvp(ctx);
 
-            hpfx3d_draw_sphere(ctx, 1.6f, 20, 16, 0x003498db);
-            total_triangles += (20 * 16 * 2);
+            hpfx3d_draw_sphere(ctx, 1.6f, 32, 24, 0x003498db);
+            total_triangles += (32 * 24 * 2);
         } else if (mesh_mode == MESH_CUBE) {
             /* 3D Cube */
             hpfx3d_mat4_identity(&ctx->modelview);
@@ -177,33 +188,42 @@ int main(int argc, char **argv)
             hpfx3d_draw_cube(ctx, 2.0f);
             total_triangles += 12;
         } else {
-            /* MESH_ALL: Multi-Object Showcase (Torus, Sphere, Cube, Pyramid) */
-            /* 1. Spinning 3D Cube (Upper Left: x = -1.8, y = +0.8) */
+            /* MESH_ALL: Multi-Object Showcase (Cube, Pyramid, Torus, Sphere) */
+            /* 1. Spinning 3D Cube (Upper Left: x = -2.4, y = +1.35) */
             hpfx3d_mat4_identity(&ctx->modelview);
-            hpfx3d_mat4_translate(&ctx->modelview, -1.8f, 0.9f, -6.5f);
+            hpfx3d_mat4_translate(&ctx->modelview, -2.4f, 1.35f, -7.2f);
             hpfx3d_mat4_rotate_x(&ctx->modelview, angle_x * (3.14159265f / 180.0f));
             hpfx3d_mat4_rotate_y(&ctx->modelview, angle_y * (3.14159265f / 180.0f));
             hpfx3d_update_mvp(ctx);
-            hpfx3d_draw_cube(ctx, 1.4f);
+            hpfx3d_draw_cube(ctx, 1.3f);
             total_triangles += 12;
 
-            /* 2. Spinning 3D Pyramid (Lower Left: x = -1.8, y = -1.0) */
+            /* 2. Spinning 3D Pyramid (Lower Left: x = -2.4, y = -1.35) */
             hpfx3d_mat4_identity(&ctx->modelview);
-            hpfx3d_mat4_translate(&ctx->modelview, -1.8f, -1.0f, -6.5f);
+            hpfx3d_mat4_translate(&ctx->modelview, -2.4f, -1.35f, -7.2f);
             hpfx3d_mat4_rotate_y(&ctx->modelview, -angle_y * 1.2f * (3.14159265f / 180.0f));
             hpfx3d_mat4_rotate_x(&ctx->modelview, 20.0f * (3.14159265f / 180.0f));
             hpfx3d_update_mvp(ctx);
-            draw_pyramid(ctx, 1.5f, 1.7f);
+            draw_pyramid(ctx, 1.4f, 1.6f);
             total_triangles += 6;
 
-            /* 3. Spinning 3D Torus (Right: x = +1.6, y = 0.0) */
+            /* 3. Spinning 3D Torus (Upper Right: x = +2.4, y = +1.35) */
             hpfx3d_mat4_identity(&ctx->modelview);
-            hpfx3d_mat4_translate(&ctx->modelview, 1.7f, 0.0f, -6.0f);
-            hpfx3d_mat4_rotate_x(&ctx->modelview, angle_x * 0.9f * (3.14159265f / 180.0f));
+            hpfx3d_mat4_translate(&ctx->modelview, 2.4f, 1.35f, -7.2f);
+            hpfx3d_mat4_rotate_x(&ctx->modelview, 45.0f * (3.14159265f / 180.0f));
             hpfx3d_mat4_rotate_y(&ctx->modelview, angle_y * 1.1f * (3.14159265f / 180.0f));
             hpfx3d_update_mvp(ctx);
-            hpfx3d_draw_torus(ctx, 1.1f, 0.38f, 18, 14, 0x00e67e22);
-            total_triangles += (18 * 14 * 2);
+            hpfx3d_draw_torus(ctx, 0.95f, 0.35f, 32, 20, 0x00e67e22);
+            total_triangles += (32 * 20 * 2);
+
+            /* 4. Orbiting 3D Sphere (Lower Right: x = +2.4, y = -1.35) */
+            hpfx3d_mat4_identity(&ctx->modelview);
+            hpfx3d_mat4_translate(&ctx->modelview, 2.4f, -1.35f, -7.2f);
+            hpfx3d_mat4_rotate_y(&ctx->modelview, angle_y * (3.14159265f / 180.0f));
+            hpfx3d_mat4_rotate_x(&ctx->modelview, 25.0f * (3.14159265f / 180.0f));
+            hpfx3d_update_mvp(ctx);
+            hpfx3d_draw_sphere(ctx, 0.90f, 28, 20, 0x003498db);
+            total_triangles += (28 * 20 * 2);
         }
 
         /* Flush batch and sync hardware pipeline */

@@ -1,0 +1,326 @@
+
+
+
+       HP Visualize Personal Workstation (HP VISUALIZE fx5, fx10)
+                      OpenGL video driver for Windows 2000
+                             March 11, 2002
+
+                    Driver Version: 1.18 for Windows 2000
+
+                    Revision
+                    Number        Revision Date
+                    1.02            April 2000
+                    1.04            June 2000
+                    1.06            August 2000
+                    1.08            September 2000
+                    1.10            November 2000
+                    1.12            March 2001
+                    1.14            June 2001
+                    1.16            September 2001
+                    1.18            March 2002
+
+
+
+                FIXES / NEW FEATURES / UPGRADE RECOMMENDATIONS
+
+    ------------------------------------------------------------------------
+
+    1.18 for Windows 2000
+        * This driver has NOT been WHQL certified
+
+    Maya Fix:
+        * Some textured models would cause the driver to download textures
+        more then needed, thus limiting performance. This has been fixed.
+
+    Misc Fixes:
+    	* Corrected problem with dragging icons or filenames from explorer 
+        window that would not blend properly with window's desktop.
+        * Corrected problem that caused scaled OpenGL glDrawPixels to display
+        wrong when the desktop is in 16bpp mode.
+
+    ------------------------------------------------------------------------
+
+    1.16 for Windows 2000
+        * This driver has NOT been WHQL certified
+
+    Misc Fixes:
+        * Correct driver problem seen when using the multi-media keyboard
+        to adjust the sound volume at the same time as a 3D graphics
+        application is running.
+        * Changes to enable driver for Windows XP.
+
+    ------------------------------------------------------------------------
+
+    1.14 for Windows 2000
+        * This driver has NOT been WHQL certified
+
+    Unigraphics Fix:
+        * Fix problem that could cause lines to display with wrong color.
+
+    Opticore Fix:
+        * Fixed problem with interaction of Texture download and stencil
+        map pixel transfer operations.
+
+    SoftImage Fix:
+        * Correct driver problem seen when enabling a SoftImage workaround
+        for a mouse performance problem.
+
+    Enhancements:
+        * Added Driver Options setting for Opticore applications.
+        * Added built in 1600x1024 76Hz video timing
+
+    ------------------------------------------------------------------------
+    
+    1.12 for Windows 2000
+        * This driver has NOT been WHQL certified
+
+    Application Enhancements:
+        * Extended Gamma range settable via display properties page.
+        * Simplify use of stereo capabilities.
+
+    SolidEdge Fix:
+        * Correct problem that would cause certain models using texturing
+        to "sparkle".
+
+    Misc Fixes:
+        * Correct texture management problem when texture memory
+        severly over commited.
+        * Windows Media player menus not occluded by video window.
+        * Fix problem that could cause NetMeeting to abort.
+        * Correctly report system configurations with > 2Gb of memory.
+        * Correct improper handling of BGR images with DrawPixels.
+
+    ------------------------------------------------------------------------
+
+    1.10 for Windows 2000
+       * This driver has NOT been WHQL certified
+
+    Application Enhancements:
+        * General improvement in performance of primitives.
+        * Improved DrawPixels speed for non-zoomed RGB & RGBA images.
+        * Improved TexImage download speeds for RGB, RGBA & Intensity8
+        formats.
+
+    3DStudioMax application enhancements:
+        * Improved performance of HP custom 3DStudioMax "driver".
+        * Fx5/Fx10 driver performance enhancements.
+
+    CoCreate Solid Designer application fixes:
+        * Correct problem with print preview.
+        * Eliminate unexpected mouse trails when using shadow pointer.
+
+    SDRC application fixes:
+        * Popup menus in I-Deas8 leave line at top of menu.
+
+    Studio Tools fixes:
+        * Premature abort that may happen when reloaded model data 
+        multiple times.
+
+    Misc Fixes:
+        * Improved behavior of software cursor when OpenGL driver
+        accelerations enabled.
+        * Uninstall properly for all locals.
+
+    ------------------------------------------------------------------------
+
+    1.08 for Windows 2000
+       * This driver has been WHQL certified
+
+    Application Enhancements:
+       * ProEngineer application tuning. 
+
+    SDRC application fixes:
+       * Fixed occlusion culling problem where wireframe would not always 
+         display properly.
+
+    CoCreate Solid Designer application fixes:
+       * Fix occlusion culling problem.
+       * Correct driver application defaults.
+    
+    SolidEdge application fixes:
+       * Fix overlay color palette problem.
+
+    Pro/3D Paint application fixes:
+       * Correct driver application defaults.
+
+    Houdini application fixes:
+       * Fix bug where wrong texture could be used when application is
+         using display list textures and texture objects.
+
+    LightWave3D application fixes:
+       * Correct driver application defaults.
+       * Fix problem where wrong texture would be used.
+       * Fix problem with preview mode.
+
+    Maya 3.0 application fixes:
+       * Fix problem that was causing an application error when 
+         picking certain kinds of objects.
+
+    SolidWorks application fixes:
+       * Correct driver application defaults.
+
+    GoCad application enhancements:
+       * Driver checks that PixelMap is different before applying state
+         change. Eliminates driver processing when app issues same
+         PixelMap call multiple times.
+
+    Misc Enhancements:
+       * Uninstall fixed up to remove all traces of driver from registry.
+       * Changes to allow more applications to use our Fast Buffer Swap
+         and Fast Clear accelerations. Application defaults set to use
+         this where appropriate.
+       * HP device tabs will now only show up if device is installed
+         and running.
+       * HP About tab has system information button.
+       * Allow video timings as slow as 50Hz.
+
+    Misc Fixes:
+       * Fix problem where texture image would not be downloaded right
+         when using certain unpack parameters.
+       * User diagnostics updated to work with pre-installed shortcut.
+    
+    ------------------------------------------------------------------------
+
+    1.06 for Windows 2000
+
+      * This driver has NOT been WHQL certified
+
+    Application Enhancements:
+       * Unigraphics application tuning.
+       * Alias|Wavefront Studio tools tuning.
+       * Houdini application tuning.
+       * Added driver application setting for new Alias|Wavefront app.
+
+    Unigraphics application fixes:
+       * Set driver application defaults to be correct for Unigraphics
+       * Fix problem where selected objects did not display properly
+         until the object was refreshed.
+
+    Alias|Wavefront application fixes:
+       * Fix problem noticed on prototype A|W application where wrong 
+         polygons get highlighted when it is doing immediate mode, 
+         flat shading, two sided lighting, and color material (diffuse).
+
+    Houdini application fixes:
+       * Fixed problem where wrong texture could be displayed when
+         using display list stored textures and texture objects.
+
+    Autodesk application fixes:
+       * Application defined XOR cursor now has correct behavior.
+
+    Misc Enhancements:
+       * Updated user graphics diagnostics
+       * Improved behavior of the driver 'Options' tab.
+
+    Misc Fixes:
+       * Fix problem found with Houdini license tool that could cause
+         application error dialog to popup upon exit.
+
+
+    ------------------------------------------------------------------------
+
+
+
+    1.04 for Windows 2000
+
+       * This driver is WHQL certified
+       * Direct3D support now included
+
+    Application Enhancements:
+       * Add SolidEdge application configuration.
+       * ProEngineer application tuning. 
+       * Eliminate unneeded 3DStudioMax High Performance configuration.
+         The standard 3D StudioMAX configuration is sufficient and gives
+         same performance.
+
+    Maya application fixes:
+       * Handle case where we run out of texture memory more efficiently
+       * Fix problem causing bitmaps wider than 8 pixels to be drawn 
+         incorrectly when texturing is being used.
+       * Fix problem where current color would not be push/popped properly 
+         if using color material, positional light(s) and two-sided 
+         lighting disabled
+       * Fix problem with glDrawPixels when origin of image is outside the 
+         window and the image is being scaled. This was found with Maya 
+         using their imageplane feature.
+
+    Misc Enhancements:
+       * Add diagnostics to driver package
+       * Update to ensure that 'About' tab displays most accurate texture 
+         size info available.
+       * Improved zoomed glDrawPixel (8bpp RGB & ARGB) performance.
+       * Enable GL_EXT_texture_object for compatibility with applications
+         that use the OpenGL 1.0 extensions.
+       * Make update process more robust, clean up unused registry entries
+
+    Misc Fixes:
+       * Fix problem with interaction of scissor and obscured windows. 
+         When obscuring window went away, image could still be clipped.
+       * Eliminate potential problem with 2Gb system memory configurations.
+       * Eliminate possible graphics hang when using glDrawPixels, a 
+         1.0 < zoom < 6.0 and certain size images (dependent on the zoom).
+       * Fix problem that could show horizontal flashing lines when 
+         driver configured for MaxPerformanceMode and running at 1024x768 
+         60Hz or below.
+
+    ------------------------------------------------------------------------
+
+    1.02 for Windows 2000
+
+       * Microsoft WHQL certified for HP VISUALIZE-fx5 and fx10
+       * First released version
+
+
+    ------------------------------------------------------------------------
+
+                 End of HP Visualize OpenGL Driver Evolution
+
+    ------------------------------------------------------------------------
+
+    WHY DOES HEWLETT-PACKARD ROLL THIS DRIVER ?
+
+    Minimizing the number of the revisions of the drivers is an objective
+    of Hewlett-Packard. However Hewlett-Packard may have to release new
+    revisions for any one of the following reasons:
+
+
+
+       * ENHANCEMENTS - This is the case when a major new feature is
+         available on the market. Good examples are Microsoft Windows 95, a
+         new level of the Plug and Play standard, a new level of the PCI
+         standard.
+
+       * PROCUREMENT ASSURANCE - Hewlett-Packard qualifies an additional
+         supplier for a component in order to secure the procurement.
+
+       * COMPONENT ROLL - A semiconductor supplier introduces a new version
+         of a component, and stops the production of the previous version
+         for technological improvement reasons.
+
+       * QUALITY - To improve the quality, Hewlett-Packard has to make use
+         of a more reliable component, or to implement a design change.
+
+       * COST - Hewlett-Packard uses a different supplier which can supply
+         the equivalent component at a much lower price.
+
+       * BUG FIX - Bugs discovered in the previous version are fixed.
+
+
+
+    DISCLAIMER
+
+    The information in this document is subject to change without notice.
+
+    Hewlett-Packard makes no warranty of any kind with regard to this
+    material, including, but not limited to, the implied warranties of
+    merchantability and fitness for a particular purpose. Hewlett-Packard
+    shall not be liable for errors contained herein or for incidental or
+    consequential damages in connection with the furnishing, performance,
+    or use of this material.
+
+    This document contains proprietary information that is protected by
+    copyright. All rights are reserved. No part of this document may be
+    reproduced, photocopied, or translated to another language without the
+    prior written consent of Hewlett-Packard Company.
+
+

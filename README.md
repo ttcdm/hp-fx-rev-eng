@@ -94,20 +94,53 @@ The driver provides direct hardware 3D acceleration IOCTLs defined in `hpfx_regs
 
 ---
 
-## Historical Documentation & Literature Dossier
+## HP Diagnostics Architecture & Golden CRC Verification
 
-The development and reverse-engineering of this driver suite were synthesized from archived literature and reverse engineering of `fx_w2k_118b.exe`:
+Reverse-engineered directly from official HP Windows 2000 diagnostic files (`FX5DIAG.W2K` and `FX5CRC.W2K`):
+* **Target Viewport**: $544 \times 403$ window (`0x220 x 0x193`).
+* **Test #1 (3D Torus Mesh)**: Rotated parametric torus evaluating Gouraud specular lighting and depth occlusion.
+  * Official Golden CRC: `0xa25c6a86` (16-bit) / `0x3411fabb` (32-bit).
+* **Test #2 (3D shoe4R Solid CAD Model)**: Industrial CAD running shoe benchmark geometry evaluating multi-patch assembly and boundary clipping.
+  * Official Golden CRC: `0x9861656d` (16-bit) / `0x4b161f67` (32-bit).
+* **Test #3 (3D Sphere Mesh)**: Tessellated UV sphere evaluating high-vertex density rasterization.
+  * Official Golden CRC: `0x9df8c3a9` (16-bit) / `0x846c6000` (32-bit).
+* **Test #4 (3D shoe4R Textured CAD Model)**: Running shoe model rendered with hardware texture mapping and alternate lighting angle.
+  * Official Golden CRC: `0x2d16310a` (16-bit) / `0x1135eb4e` (32-bit).
 
-* **HP Journal (May 1998, Vol. 49, No. 2, pp. 28–34)**:
-  * *"An Overview of the VISUALIZE fx Graphics Accelerator Hardware"* (Noel D. Scott, Daniel M. Olsen, Ethan W. Gannett): Architectural breakdown of Summit ASICs and evolution to the Lego unified raster/texture engine.
-  * *"HP Kayak: A PC Workstation with Advanced Graphics Performance"*: Architecture of the Intel IA-32 Kayak workstations, AGP 2X / AGP Pro bus, and OpenGL acceleration.
-* **HP Official Manuals & Part Numbers**:
-  * **HP Data Sheet `5980-1411E`** (2000): *HP Visualize fx5pro/fx10pro UNIX Graphics Accelerators Data Sheet*.
-  * **HP Configuration Guide `A5021-90015`** (2000): *HP VISUALIZE fx5 and fx10 Configuration Guide* / *HP fx Graphics Card Installation and Configuration Guide (fxe, fx5, and fx10)*.
-  * **HP White Paper**: *HP IA-32 visualize fx5 and fx10 Windows graphics accelerators*.
-* **Open-Source PA-RISC Linux Heritage**:
-  * Community documentation at [OpenPA.net](https://www.openpa.net) and [parisc.docs.kernel.org](https://parisc.docs.kernel.org).
-  * Historical driver efforts by Kyle McMartin and Sven Schnelle's 2021 `[PATCH/RFT] fbdev driver for HP Visualize FX cards` on `dri-devel` / `freedesktop.org`.
+---
+
+## Pre-Shader GPGPU & Numerical Compute Framework (`hpfx_compute.h`)
+
+Maps high-performance numerical computation onto fixed-function graphics pipelines:
+1. **2D PDE / Heat Diffusion & Discrete Laplacian**:
+   - Solves $\frac{\partial u}{\partial t} = \alpha \nabla^2 u$ on 2D grids via 5-point discrete Laplacian stencil and ping-pong hardware buffers.
+2. **Spatial Image Convolutions**:
+   - $3 \times 3$ horizontal and vertical Sobel gradient edge detector ($G_x, G_y, |G|$) and Gaussian smoothing filters.
+3. **Discrete Voronoi & Euclidean Distance Transform (EDT)**:
+   - Evaluates nearest seed sites and continuous Euclidean distance fields via 3D cone rendering into the hardware Z-buffer (`GL_LESS`), computing exact Voronoi partitions in $O(N)$ geometry time rather than $O(N \cdot W \cdot H)$ CPU brute force.
+4. **Cellular Automata (Conway's Game of Life)**:
+   - High-throughput cellular automata evaluated at memory bandwidth speeds using 2D Blitter bitwise ROP SIMD operations.
+5. **FP14 Blocked Matrix Multiplication (GEMM)**:
+   - Decomposes general $M \times K \times N$ matrix multiplications into $4 \times 4$ tile blocks executed through FP14 geometry transform units.
+
+---
+
+## OpenGL 1.1 / TinyGL Hardware Backend (`hpfx_gl.h` & `hpfx_gears`)
+
+Provides standard OpenGL 1.1 immediate-mode APIs mapping directly onto the Visualize FX hardware acceleration pipeline:
+* **Immediate Mode**: `glBegin` (`GL_TRIANGLES`, `GL_QUADS`, `GL_TRIANGLE_STRIP`, `GL_TRIANGLE_FAN`), `glEnd`, `glVertex3f`, `glColor3f/4f`, `glNormal3f`, `glTexCoord2f`.
+* **Matrix Stack**: Hierarchical 32-level ModelView and 8-level Projection matrix stacks (`glMatrixMode`, `glPushMatrix`, `glPopMatrix`, `glTranslatef`, `glRotatef`, `glScalef`, `glFrustum`, `glOrtho`).
+* **State Management**: `glEnable`/`glDisable` (`GL_DEPTH_TEST`, `GL_CULL_FACE`, `GL_BLEND`, `GL_FOG`, `GL_TEXTURE_2D`, `GL_SCISSOR_TEST`), `glDepthFunc`, `glBlendFunc`, `glClear`.
+* **3D Gears Benchmark (`hpfx_gears`)**: Classic Brian Paul gears demo running natively on top of `hpfx_gl`.
+
+---
+
+## Modern Linux DRM/KMS Kernel Driver (`hpfx_drm.c`)
+
+Extends beyond legacy `fbdev` with a modern Linux Direct Rendering Manager (DRM) and Kernel Mode Setting (KMS) driver:
+* **Atomic Modesetting**: CRTC, Primary Plane, Connector, and Encoder pipeline programming HP Visualize FX timing registers (`0x000044`, `0x00004c`).
+* **GEM Dumb Buffers**: 128-byte cache-aligned linear VRAM allocations with write-combining mapping.
+* **Render Node IOCTLs**: Hardware command buffer execution dispatch (`DRM_IOCTL_HPFX_EXEC`, `DRM_IOCTL_HPFX_WAIT_IDLE`).
 
 ---
 
@@ -129,16 +162,24 @@ sudo pacman -S linux-headers base-devel
 
 ### 2. Compile Everything
 ```bash
-cd hp_visualize_fx_linux
 make
 ```
-This builds both the kernel module (`hpfx_fb.ko`) and the userspace 3D library and demo (`hpfx_3d_demo`).
+Builds userspace acceleration libraries (`libhpfx3d.a`), 3D multi-mesh demo (`hpfx_3d_demo`), OpenGL gears demo (`hpfx_gears`), test suite (`test_hpfx_suite`), and kernel modules (`hpfx_fb.ko`, `hpfx_drm.ko`).
 
 ### 3. Run the Automated Hardware & Pipeline Test Suite
 ```bash
 make test
 ```
-Executes the comprehensive 303-test regression suite across 16 domains covering PCI specs, timing tables, FP14 3D registers, IOCTL ABI, 3D matrix mathematics, Z-buffer occlusion, textures, alpha blending, fog, scissor clipping, Torus/Sphere diagnostics, fuzzing, and VRAM staging.
+Executes the comprehensive 377-test regression suite across 20 domains covering PCI specs, timing tables, FP14 3D registers, IOCTL ABI, 3D matrix mathematics, Z-buffer occlusion, textures, alpha blending, fog, scissor clipping, Torus/Sphere diagnostics, fuzzing, VRAM staging, HP Diagnostics golden verification, OpenGL 1.1 backend, GPGPU compute, and DRM/KMS GEM ABI.
+
+### 4. Run the Demos
+```bash
+# Run multi-mesh 3D animation demo
+make test-demo
+
+# Run classic OpenGL Gears demo
+make test-gears
+```
 
 ### 4. Load the Driver
 ```bash

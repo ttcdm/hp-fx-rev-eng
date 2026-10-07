@@ -156,6 +156,24 @@ void hpfx3d_close(hpfx3d_context *ctx)
     free(ctx);
 }
 
+void hpfx3d_resize(hpfx3d_context *ctx, uint32_t width, uint32_t height)
+{
+    if (!ctx || width == 0 || height == 0) return;
+    if (ctx->width == width && ctx->height == height) return;
+
+    ctx->width = width;
+    ctx->height = height;
+    ctx->pitch = width * 4;
+    ctx->fb_size = ctx->pitch * height;
+
+    if (!ctx->is_hw_accel) {
+        if (ctx->fb_mem) free(ctx->fb_mem);
+        ctx->fb_mem = malloc(ctx->fb_size);
+        if (ctx->sw_zbuffer) free(ctx->sw_zbuffer);
+        ctx->sw_zbuffer = malloc(width * height * sizeof(uint32_t));
+    }
+}
+
 int hpfx3d_reset(hpfx3d_context *ctx)
 {
     if (!ctx)
@@ -301,6 +319,73 @@ void hpfx3d_set_fog(hpfx3d_context *ctx, bool enable, uint32_t color, float star
 }
 
 /* =========================================================================
+ * 2D Hardware BitBLT & Raster Operations (Lego 128-bit 2D Engine)
+ * ========================================================================= */
+
+void hpfx3d_fill_rect(hpfx3d_context *ctx, int x, int y, int width, int height, uint32_t color, uint8_t rop)
+{
+    if (!ctx || !ctx->fb_mem || width <= 0 || height <= 0) return;
+
+    int x0 = x < 0 ? 0 : x;
+    int y0 = y < 0 ? 0 : y;
+    int x1 = (x + width) > (int)ctx->width ? (int)ctx->width : (x + width);
+    int y1 = (y + height) > (int)ctx->height ? (int)ctx->height : (y + height);
+    if (x0 >= x1 || y0 >= y1) return;
+
+    uint32_t *fb = (uint32_t*)ctx->fb_mem;
+
+    for (int r = y0; r < y1; r++) {
+        uint32_t *row = &fb[r * ctx->width];
+        for (int c = x0; c < x1; c++) {
+            if (rop == 0xcc) {
+                row[c] = color;
+            } else if (rop == 0x66) {
+                row[c] ^= color;
+            } else if (rop == 0x88) {
+                row[c] &= color;
+            } else if (rop == 0xee) {
+                row[c] |= color;
+            } else if (rop == 0x55) {
+                row[c] = ~row[c];
+            } else {
+                row[c] = color;
+            }
+        }
+    }
+}
+
+void hpfx3d_copy_area(hpfx3d_context *ctx, int sx, int sy, int dx, int dy, int width, int height, uint8_t rop)
+{
+    (void)rop;
+    if (!ctx || !ctx->fb_mem || width <= 0 || height <= 0) return;
+
+    uint32_t *fb = (uint32_t*)ctx->fb_mem;
+    uint32_t *tmp = malloc(width * height * sizeof(uint32_t));
+    if (!tmp) return;
+
+    for (int r = 0; r < height; r++) {
+        int src_y = sy + r;
+        if (src_y < 0 || src_y >= (int)ctx->height) continue;
+        for (int c = 0; c < width; c++) {
+            int src_x = sx + c;
+            if (src_x < 0 || src_x >= (int)ctx->width) continue;
+            tmp[r * width + c] = fb[src_y * ctx->width + src_x];
+        }
+    }
+
+    for (int r = 0; r < height; r++) {
+        int dst_y = dy + r;
+        if (dst_y < 0 || dst_y >= (int)ctx->height) continue;
+        for (int c = 0; c < width; c++) {
+            int dst_x = dx + c;
+            if (dst_x < 0 || dst_x >= (int)ctx->width) continue;
+            fb[dst_y * ctx->width + dst_x] = tmp[r * width + c];
+        }
+    }
+    free(tmp);
+}
+
+/* =========================================================================
  * Texture Management
  * ========================================================================= */
 
@@ -368,7 +453,7 @@ int hpfx3d_upload_texture_hw(hpfx3d_context *ctx, uint32_t vram_offset, uint32_t
 __attribute__((unused))
 static uint32_t sample_tex(const hpfx3d_texture *tex, float u, float v)
 {
-    if (!tex || !tex->data) return 0xffffffff;
+    if (!tex || !tex->data || tex->width == 0 || tex->height == 0) return 0xffffffff;
 
     if (tex->wrap_mode == HPFX3D_TEX_WRAP_REPEAT) {
         u = u - floorf(u);
@@ -378,12 +463,45 @@ static uint32_t sample_tex(const hpfx3d_texture *tex, float u, float v)
         if (v < 0.0f) v = 0.0f; else if (v > 1.0f) v = 1.0f;
     }
 
-    int tx = (int)(u * (tex->width - 1));
-    int ty = (int)(v * (tex->height - 1));
-    if (tx < 0) tx = 0; else if (tx >= (int)tex->width) tx = tex->width - 1;
-    if (ty < 0) ty = 0; else if (ty >= (int)tex->height) ty = tex->height - 1;
+    if (tex->filter_mode == HPFX3D_TEX_FILTER_BILINEAR) {
+        float fx = u * (float)(tex->width - 1);
+        float fy = v * (float)(tex->height - 1);
+        int x0 = (int)fx;
+        int y0 = (int)fy;
+        int x1 = (x0 + 1 < (int)tex->width) ? x0 + 1 : x0;
+        int y1 = (y0 + 1 < (int)tex->height) ? y0 + 1 : y0;
+        float frac_x = fx - (float)x0;
+        float frac_y = fy - (float)y0;
 
-    return tex->data[ty * tex->width + tx];
+        uint32_t c00 = tex->data[y0 * tex->width + x0];
+        uint32_t c10 = tex->data[y0 * tex->width + x1];
+        uint32_t c01 = tex->data[y1 * tex->width + x0];
+        uint32_t c11 = tex->data[y1 * tex->width + x1];
+
+        float r0 = (1.0f - frac_x) * ((c00 >> 16) & 0xff) + frac_x * ((c10 >> 16) & 0xff);
+        float r1 = (1.0f - frac_x) * ((c01 >> 16) & 0xff) + frac_x * ((c11 >> 16) & 0xff);
+        uint32_t r = (uint32_t)((1.0f - frac_y) * r0 + frac_y * r1);
+
+        float g0 = (1.0f - frac_x) * ((c00 >> 8) & 0xff) + frac_x * ((c10 >> 8) & 0xff);
+        float g1 = (1.0f - frac_x) * ((c01 >> 8) & 0xff) + frac_x * ((c11 >> 8) & 0xff);
+        uint32_t g = (uint32_t)((1.0f - frac_y) * g0 + frac_y * g1);
+
+        float b0 = (1.0f - frac_x) * (c00 & 0xff) + frac_x * (c10 & 0xff);
+        float b1 = (1.0f - frac_x) * (c01 & 0xff) + frac_x * (c11 & 0xff);
+        uint32_t b = (uint32_t)((1.0f - frac_y) * b0 + frac_y * b1);
+
+        float a0 = (1.0f - frac_x) * ((c00 >> 24) & 0xff) + frac_x * ((c10 >> 24) & 0xff);
+        float a1 = (1.0f - frac_x) * ((c01 >> 24) & 0xff) + frac_x * ((c11 >> 24) & 0xff);
+        uint32_t a = (uint32_t)((1.0f - frac_y) * a0 + frac_y * a1);
+
+        return (a << 24) | (r << 16) | (g << 8) | b;
+    } else {
+        int tx = (int)(u * (tex->width - 1));
+        int ty = (int)(v * (tex->height - 1));
+        if (tx < 0) tx = 0; else if (tx >= (int)tex->width) tx = tex->width - 1;
+        if (ty < 0) ty = 0; else if (ty >= (int)tex->height) ty = tex->height - 1;
+        return tex->data[ty * tex->width + tx];
+    }
 }
 
 /* Alpha blend helper: (alpha * src) + ((1 - alpha) * dst) */
@@ -615,6 +733,163 @@ void hpfx3d_draw_triangle_3d(hpfx3d_context *ctx,
     hpfx3d_draw_triangle_screen(ctx, sx0, sy0, sz0, sx1, sy1, sz1, sx2, sy2, sz2, color);
 }
 
+void hpfx3d_draw_triangle_smooth(hpfx3d_context *ctx,
+                                 const hpfx3d_vertex *v0,
+                                 const hpfx3d_vertex *v1,
+                                 const hpfx3d_vertex *v2)
+{
+    if (!ctx || !v0 || !v1 || !v2) return;
+
+    /* Fast path: flat shading with no texture and uniform vertex color */
+    if (ctx->state.shade_model == 0 && ctx->current_tex == NULL &&
+        v0->color == v1->color && v0->color == v2->color) {
+        hpfx3d_draw_triangle_3d(ctx, &v0->pos, &v1->pos, &v2->pos, v0->color);
+        return;
+    }
+
+    if (ctx->batch_count > 0) {
+        hpfx3d_flush(ctx);
+    }
+
+    hpfx3d_vec4 c0, c1, c2;
+    transform_point(&ctx->mvp, &v0->pos, &c0);
+    transform_point(&ctx->mvp, &v1->pos, &c1);
+    transform_point(&ctx->mvp, &v2->pos, &c2);
+
+    /* Near-plane clipping rejection */
+    if (c0.w <= 0.001f || c1.w <= 0.001f || c2.w <= 0.001f)
+        return;
+
+    /* Perspective divide -> NDC */
+    float ndc_x0 = c0.x / c0.w, ndc_y0 = c0.y / c0.w, ndc_z0 = c0.z / c0.w;
+    float ndc_x1 = c1.x / c1.w, ndc_y1 = c1.y / c1.w, ndc_z1 = c1.z / c1.w;
+    float ndc_x2 = c2.x / c2.w, ndc_y2 = c2.y / c2.w, ndc_z2 = c2.z / c2.w;
+
+    /* Viewport mapping */
+    float half_w = ctx->width * 0.5f;
+    float half_h = ctx->height * 0.5f;
+    int sx0 = (int)((ndc_x0 + 1.0f) * half_w);
+    int sy0 = (int)((1.0f - ndc_y0) * half_h);
+    int sx1 = (int)((ndc_x1 + 1.0f) * half_w);
+    int sy1 = (int)((1.0f - ndc_y1) * half_h);
+    int sx2 = (int)((ndc_x2 + 1.0f) * half_w);
+    int sy2 = (int)((1.0f - ndc_y2) * half_h);
+
+    uint32_t sz0 = (uint32_t)((ndc_z0 * 0.5f + 0.5f) * 16777215.0f);
+    uint32_t sz1 = (uint32_t)((ndc_z1 * 0.5f + 0.5f) * 16777215.0f);
+    uint32_t sz2 = (uint32_t)((ndc_z2 * 0.5f + 0.5f) * 16777215.0f);
+
+    /* Backface culling */
+    float edge_ndc = (ndc_x1 - ndc_x0) * (ndc_y2 - ndc_y0) - (ndc_y1 - ndc_y0) * (ndc_x2 - ndc_x0);
+    if (ctx->state.cull_mode == HPFX_CULL_BACK && edge_ndc <= 0.0f) return;
+    if (ctx->state.cull_mode == HPFX_CULL_FRONT && edge_ndc >= 0.0f) return;
+
+    int min_x = sx0 < sx1 ? (sx0 < sx2 ? sx0 : sx2) : (sx1 < sx2 ? sx1 : sx2);
+    int max_x = sx0 > sx1 ? (sx0 > sx2 ? sx0 : sx2) : (sx1 > sx2 ? sx1 : sx2);
+    int min_y = sy0 < sy1 ? (sy0 < sy2 ? sy0 : sy2) : (sy1 < sy2 ? sy1 : sy2);
+    int max_y = sy0 > sy1 ? (sy0 > sy2 ? sy0 : sy2) : (sy1 > sy2 ? sy1 : sy2);
+
+    if (min_x < 0) min_x = 0;
+    if (min_y < 0) min_y = 0;
+    if (max_x >= (int)ctx->width) max_x = (int)ctx->width - 1;
+    if (max_y >= (int)ctx->height) max_y = (int)ctx->height - 1;
+
+    if (ctx->scissor.enabled) {
+        int sc_x0 = ctx->scissor.x, sc_y0 = ctx->scissor.y;
+        int sc_x1 = ctx->scissor.x + ctx->scissor.width - 1;
+        int sc_y1 = ctx->scissor.y + ctx->scissor.height - 1;
+        if (min_x < sc_x0) min_x = sc_x0;
+        if (min_y < sc_y0) min_y = sc_y0;
+        if (max_x > sc_x1) max_x = sc_x1;
+        if (max_y > sc_y1) max_y = sc_y1;
+        if (min_x > max_x || min_y > max_y) return;
+    }
+
+    int denom = (sy1 - sy2) * (sx0 - sx2) + (sx2 - sx1) * (sy0 - sy2);
+    if (denom == 0) return;
+    float inv_denom = 1.0f / (float)denom;
+
+    uint32_t *fb32 = (uint32_t*)ctx->fb_mem;
+    uint32_t *zbuf = ctx->sw_zbuffer;
+
+    uint32_t clr0 = v0->color, clr1 = v1->color, clr2 = v2->color;
+    float r0 = (clr0 >> 16) & 0xff, g0 = (clr0 >> 8) & 0xff, b0 = clr0 & 0xff, a0 = (clr0 >> 24) & 0xff;
+    float r1 = (clr1 >> 16) & 0xff, g1 = (clr1 >> 8) & 0xff, b1 = clr1 & 0xff, a1 = (clr1 >> 24) & 0xff;
+    float r2 = (clr2 >> 16) & 0xff, g2 = (clr2 >> 8) & 0xff, b2 = clr2 & 0xff, a2 = (clr2 >> 24) & 0xff;
+    if (a0 == 0) a0 = 255.0f; if (a1 == 0) a1 = 255.0f; if (a2 == 0) a2 = 255.0f;
+
+    for (int y = min_y; y <= max_y; y++) {
+        for (int x = min_x; x <= max_x; x++) {
+            float w0 = (float)((sy1 - sy2) * (x - sx2) + (sx2 - sx1) * (y - sy2)) * inv_denom;
+            float w1 = (float)((sy2 - sy0) * (x - sx2) + (sx0 - sx2) * (y - sy2)) * inv_denom;
+            float w2 = 1.0f - w0 - w1;
+
+            if (w0 >= 0.0f && w1 >= 0.0f && w2 >= 0.0f) {
+                uint32_t z = (uint32_t)(w0 * sz0 + w1 * sz1 + w2 * sz2);
+                int pixel_idx = y * ctx->width + x;
+
+                /* Hardware 24-bit Depth Testing */
+                if (ctx->state.depth_enable && zbuf) {
+                    if (ctx->state.depth_func == HPFX_DEPTH_LESS && z >= zbuf[pixel_idx]) continue;
+                    if (ctx->state.depth_func == HPFX_DEPTH_LEQUAL && z > zbuf[pixel_idx]) continue;
+                    if (ctx->state.depth_func == HPFX_DEPTH_GREATER && z <= zbuf[pixel_idx]) continue;
+                    if (ctx->state.depth_func == HPFX_DEPTH_GEQUAL && z < zbuf[pixel_idx]) continue;
+                    if (ctx->state.depth_func == HPFX_DEPTH_EQUAL && z != zbuf[pixel_idx]) continue;
+                    if (ctx->state.depth_func == HPFX_DEPTH_NOTEQUAL && z == zbuf[pixel_idx]) continue;
+                    if (ctx->state.depth_func == HPFX_DEPTH_NEVER) continue;
+
+                    if (ctx->state.depth_mask)
+                        zbuf[pixel_idx] = z;
+                }
+
+                /* Interpolate Gouraud vertex color */
+                uint32_t pr = (uint32_t)(w0 * r0 + w1 * r1 + w2 * r2);
+                uint32_t pg = (uint32_t)(w0 * g0 + w1 * g1 + w2 * g2);
+                uint32_t pb = (uint32_t)(w0 * b0 + w1 * b1 + w2 * b2);
+                uint32_t pa = (uint32_t)(w0 * a0 + w1 * a1 + w2 * a2);
+
+                /* Hardware Texture Engine Bilinear Modulation */
+                if (ctx->current_tex) {
+                    float u = w0 * v0->u + w1 * v1->u + w2 * v2->u;
+                    float v = w0 * v0->v + w1 * v1->v + w2 * v2->v;
+                    uint32_t texel = sample_tex(ctx->current_tex, u, v);
+                    uint32_t tr = (texel >> 16) & 0xff;
+                    uint32_t tg = (texel >> 8) & 0xff;
+                    uint32_t tb = texel & 0xff;
+                    uint32_t ta = (texel >> 24) & 0xff;
+                    pr = (pr * tr) >> 8;
+                    pg = (pg * tg) >> 8;
+                    pb = (pb * tb) >> 8;
+                    pa = (pa * ta) >> 8;
+                }
+
+                uint32_t out_color = (pa << 24) | (pr << 16) | (pg << 8) | pb;
+
+                /* Hardware Fog Blend */
+                if (ctx->fog.enabled) {
+                    float depth_norm = (float)z / 16777215.0f;
+                    float f = (ctx->fog.end_z - depth_norm) / (ctx->fog.end_z - ctx->fog.start_z);
+                    if (f < 0.0f) f = 0.0f; else if (f > 1.0f) f = 1.0f;
+                    uint32_t fr = (ctx->fog.color >> 16) & 0xff;
+                    uint32_t fg = (ctx->fog.color >> 8) & 0xff;
+                    uint32_t f_b = ctx->fog.color & 0xff;
+                    pr = (uint32_t)(f * pr + (1.0f - f) * fr);
+                    pg = (uint32_t)(f * pg + (1.0f - f) * fg);
+                    pb = (uint32_t)(f * pb + (1.0f - f) * f_b);
+                    out_color = (0xff << 24) | (pr << 16) | (pg << 8) | pb;
+                }
+
+                /* Hardware Alpha Blending */
+                if (ctx->state.blend_mode) {
+                    out_color = blend_color_32(out_color, fb32[pixel_idx]);
+                }
+
+                fb32[pixel_idx] = out_color;
+            }
+        }
+    }
+}
+
 void hpfx3d_draw_mesh(hpfx3d_context *ctx,
                       const hpfx3d_vertex *vertices,
                       const uint16_t *indices,
@@ -675,6 +950,11 @@ void hpfx3d_draw_torus(hpfx3d_context *ctx, float r_major, float r_minor, int ri
 {
     if (!ctx || rings < 3 || sides < 3) return;
 
+    uint32_t cr = (color >> 16) & 0xff;
+    uint32_t cg = (color >> 8) & 0xff;
+    uint32_t cb = color & 0xff;
+    const float lx = 0.577f, ly = 0.577f, lz = 0.577f;
+
     for (int i = 0; i < rings; i++) {
         float phi0 = (float)i * 2.0f * 3.14159265f / (float)rings;
         float phi1 = (float)(i + 1) * 2.0f * 3.14159265f / (float)rings;
@@ -694,8 +974,22 @@ void hpfx3d_draw_torus(hpfx3d_context *ctx, float r_major, float r_minor, int ri
             hpfx3d_vec3 p10 = { (r_major + r_minor * cos_th0) * cos_phi1, (r_major + r_minor * cos_th0) * sin_phi1, r_minor * sin_th0 };
             hpfx3d_vec3 p11 = { (r_major + r_minor * cos_th1) * cos_phi1, (r_major + r_minor * cos_th1) * sin_phi1, r_minor * sin_th1 };
 
-            hpfx3d_draw_triangle_3d(ctx, &p00, &p10, &p11, color);
-            hpfx3d_draw_triangle_3d(ctx, &p00, &p11, &p01, color);
+            float mid_th = (theta0 + theta1) * 0.5f;
+            float mid_phi = (phi0 + phi1) * 0.5f;
+            float nx = cosf(mid_th) * cosf(mid_phi);
+            float ny = cosf(mid_th) * sinf(mid_phi);
+            float nz = sinf(mid_th);
+            float ndotl = nx * lx + ny * ly + nz * lz;
+            if (ndotl < 0.0f) ndotl = 0.0f;
+            float diff = 0.30f + 0.70f * ndotl;
+
+            uint32_t lit_r = (uint32_t)(cr * diff);
+            uint32_t lit_g = (uint32_t)(cg * diff);
+            uint32_t lit_b = (uint32_t)(cb * diff);
+            uint32_t lit_color = (0xff << 24) | (lit_r << 16) | (lit_g << 8) | lit_b;
+
+            hpfx3d_draw_triangle_3d(ctx, &p00, &p10, &p11, lit_color);
+            hpfx3d_draw_triangle_3d(ctx, &p00, &p11, &p01, lit_color);
         }
     }
 }
@@ -704,6 +998,11 @@ void hpfx3d_draw_torus(hpfx3d_context *ctx, float r_major, float r_minor, int ri
 void hpfx3d_draw_sphere(hpfx3d_context *ctx, float radius, int slices, int stacks, uint32_t color)
 {
     if (!ctx || slices < 3 || stacks < 2) return;
+
+    uint32_t cr = (color >> 16) & 0xff;
+    uint32_t cg = (color >> 8) & 0xff;
+    uint32_t cb = color & 0xff;
+    const float lx = 0.577f, ly = 0.577f, lz = 0.577f;
 
     for (int i = 0; i < stacks; i++) {
         float phi0 = -3.14159265f * 0.5f + (float)i * 3.14159265f / (float)stacks;
@@ -724,16 +1023,96 @@ void hpfx3d_draw_sphere(hpfx3d_context *ctx, float radius, int slices, int stack
             hpfx3d_vec3 p10 = { radius * cos_phi1 * cos_th0, radius * sin_phi1, radius * cos_phi1 * sin_th0 };
             hpfx3d_vec3 p11 = { radius * cos_phi1 * cos_th1, radius * sin_phi1, radius * cos_phi1 * sin_th1 };
 
+            float mid_phi = (phi0 + phi1) * 0.5f;
+            float mid_th = (theta0 + theta1) * 0.5f;
+            float nx = cosf(mid_phi) * cosf(mid_th);
+            float ny = sinf(mid_phi);
+            float nz = cosf(mid_phi) * sinf(mid_th);
+            float ndotl = nx * lx + ny * ly + nz * lz;
+            if (ndotl < 0.0f) ndotl = 0.0f;
+            float diff = 0.28f + 0.72f * ndotl;
+
+            uint32_t lit_r = (uint32_t)(cr * diff);
+            uint32_t lit_g = (uint32_t)(cg * diff);
+            uint32_t lit_b = (uint32_t)(cb * diff);
+            uint32_t lit_color = (0xff << 24) | (lit_r << 16) | (lit_g << 8) | lit_b;
+
             if (i == 0) {
-                hpfx3d_draw_triangle_3d(ctx, &p00, &p10, &p11, color);
+                hpfx3d_draw_triangle_3d(ctx, &p00, &p10, &p11, lit_color);
             } else if (i == stacks - 1) {
-                hpfx3d_draw_triangle_3d(ctx, &p00, &p11, &p01, color);
+                hpfx3d_draw_triangle_3d(ctx, &p00, &p11, &p01, lit_color);
             } else {
-                hpfx3d_draw_triangle_3d(ctx, &p00, &p10, &p11, color);
-                hpfx3d_draw_triangle_3d(ctx, &p00, &p11, &p01, color);
+                hpfx3d_draw_triangle_3d(ctx, &p00, &p10, &p11, lit_color);
+                hpfx3d_draw_triangle_3d(ctx, &p00, &p11, &p01, lit_color);
             }
         }
     }
+}
+
+/* Procedural Shoe CAD Benchmark Mesh (Inspired by HP Diagnostics FX5DIAG Test #2 & #4 "shoe4R") */
+void hpfx3d_draw_shoe(hpfx3d_context *ctx, float scale, uint32_t color)
+{
+    if (!ctx || scale <= 0.0f) return;
+
+    /* Sole / Midsole profile points (x = length, y = height, z = width) */
+    const int segments = 8;
+    float x_profile[8]  = { -2.0f, -1.5f, -0.8f,  0.0f,  0.8f,  1.5f,  2.2f,  2.6f };
+    float w_profile[8]  = {  0.7f,  0.8f,  0.6f,  0.65f, 0.9f,  0.95f, 0.8f,  0.3f };
+    float y_sole[8]     = { -0.5f, -0.5f, -0.45f,-0.4f, -0.4f, -0.42f,-0.45f,-0.48f };
+    float y_upper[8]    = {  0.8f,  1.1f,  0.9f,  0.6f,  0.4f,  0.25f, 0.1f, -0.1f };
+
+    /* Color variations for sole vs upper */
+    uint32_t sole_color = (color & 0x00fefefe) >> 1; /* Darker sole */
+    uint32_t upper_color = color;
+
+    for (int i = 0; i < segments - 1; i++) {
+        float x0 = x_profile[i] * scale;
+        float x1 = x_profile[i+1] * scale;
+        float w0 = w_profile[i] * scale;
+        float w1 = w_profile[i+1] * scale;
+        float y_s0 = y_sole[i] * scale;
+        float y_s1 = y_sole[i+1] * scale;
+        float y_u0 = y_upper[i] * scale;
+        float y_u1 = y_upper[i+1] * scale;
+
+        /* Bottom Sole vertices */
+        hpfx3d_vec3 b_l0 = { x0, y_s0, -w0 };
+        hpfx3d_vec3 b_r0 = { x0, y_s0,  w0 };
+        hpfx3d_vec3 b_l1 = { x1, y_s1, -w1 };
+        hpfx3d_vec3 b_r1 = { x1, y_s1,  w1 };
+
+        /* Midsole strip */
+        hpfx3d_draw_triangle_3d(ctx, &b_l0, &b_r0, &b_r1, sole_color);
+        hpfx3d_draw_triangle_3d(ctx, &b_l0, &b_r1, &b_l1, sole_color);
+
+        /* Upper vertices */
+        hpfx3d_vec3 u_l0 = { x0, y_u0, -w0 * 0.85f };
+        hpfx3d_vec3 u_r0 = { x0, y_u0,  w0 * 0.85f };
+        hpfx3d_vec3 u_l1 = { x1, y_u1, -w1 * 0.85f };
+        hpfx3d_vec3 u_r1 = { x1, y_u1,  w1 * 0.85f };
+
+        /* Left side upper flank */
+        hpfx3d_draw_triangle_3d(ctx, &b_l0, &b_l1, &u_l1, upper_color);
+        hpfx3d_draw_triangle_3d(ctx, &b_l0, &u_l1, &u_l0, upper_color);
+
+        /* Right side upper flank */
+        hpfx3d_draw_triangle_3d(ctx, &b_r0, &u_r1, &b_r1, upper_color);
+        hpfx3d_draw_triangle_3d(ctx, &b_r0, &u_r0, &u_r1, upper_color);
+
+        /* Top upper ridge */
+        hpfx3d_draw_triangle_3d(ctx, &u_l0, &u_r0, &u_r1, upper_color);
+        hpfx3d_draw_triangle_3d(ctx, &u_l0, &u_r1, &u_l1, upper_color);
+    }
+
+    /* Heel cap cap closing */
+    float h_x = x_profile[0] * scale;
+    float h_w = w_profile[0] * scale;
+    hpfx3d_vec3 h_b_l = { h_x, y_sole[0] * scale, -h_w };
+    hpfx3d_vec3 h_b_r = { h_x, y_sole[0] * scale,  h_w };
+    hpfx3d_vec3 h_u_l = { h_x, y_upper[0] * scale, -h_w * 0.85f };
+    hpfx3d_vec3 h_u_r = { h_x, y_upper[0] * scale,  h_w * 0.85f };
+    hpfx3d_draw_triangle_3d(ctx, &h_b_l, &h_u_l, &h_u_r, upper_color);
+    hpfx3d_draw_triangle_3d(ctx, &h_b_l, &h_u_r, &h_b_r, upper_color);
 }
 
 /* =========================================================================

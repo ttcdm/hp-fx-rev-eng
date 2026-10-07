@@ -7,6 +7,14 @@
 *.symvers
 *.ppm
 hpfx_3d_demo
+hpfx_gears
+hpfx_raytracer
+hpfx_cad_studio
+hpfx_gpgpu_showcase
+hpfx_texture_demo
+hpfx_voronoi_3d
+hpfx_2d_demo
+hpfx_gallery
 test_hpfx_suite
 hpfx_compute_bench
 test_hpfx_compute

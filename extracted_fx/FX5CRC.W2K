@@ -1,0 +1,23 @@
+// file format:
+// program_rev_str
+// driver_rev_str
+// os_rev_str
+// test 1 to N 16 bit CRC's (hex)
+// test 1 to N 24 bit CRC's (hex)
+1.2
+1.18
+5.0
+// 16   bit CRC's
+0xa25c6a86    // test #1
+0x9861656d    // test #2
+0x9df8c3a9    // test #3
+0x2d16310a    // test #4
+
+// 32 bit CRC's
+0x3411fabb   // test #1
+0x4b161f67   // test #2
+0x846c6000   // test #3
+0x1135eb4e   // test #4
+
+
+ 

@@ -111,6 +111,7 @@ typedef struct {
 
 hpfx3d_context* hpfx3d_open(const char *fb_device);
 void hpfx3d_close(hpfx3d_context *ctx);
+void hpfx3d_resize(hpfx3d_context *ctx, uint32_t width, uint32_t height);
 int hpfx3d_reset(hpfx3d_context *ctx);
 void hpfx3d_flush(hpfx3d_context *ctx);
 void hpfx3d_sync(hpfx3d_context *ctx);
@@ -127,6 +128,13 @@ void hpfx3d_set_shade_model(hpfx3d_context *ctx, uint32_t shade_model);
 
 void hpfx3d_set_scissor(hpfx3d_context *ctx, bool enable, int x, int y, int width, int height);
 void hpfx3d_set_fog(hpfx3d_context *ctx, bool enable, uint32_t color, float start_z, float end_z);
+
+/* =========================================================================
+ * 2D Hardware BitBLT & Raster Operations (Lego 128-bit 2D Engine)
+ * ========================================================================= */
+
+void hpfx3d_fill_rect(hpfx3d_context *ctx, int x, int y, int width, int height, uint32_t color, uint8_t rop);
+void hpfx3d_copy_area(hpfx3d_context *ctx, int sx, int sy, int dx, int dy, int width, int height, uint8_t rop);
 
 /* =========================================================================
  * Texture Management
@@ -182,6 +190,7 @@ void hpfx3d_draw_mesh(hpfx3d_context *ctx,
 void hpfx3d_draw_cube(hpfx3d_context *ctx, float size);
 void hpfx3d_draw_torus(hpfx3d_context *ctx, float r_major, float r_minor, int rings, int sides, uint32_t color);
 void hpfx3d_draw_sphere(hpfx3d_context *ctx, float radius, int slices, int stacks, uint32_t color);
+void hpfx3d_draw_shoe(hpfx3d_context *ctx, float scale, uint32_t color);
 
 /* CRC32 Framebuffer Verification (deterministic regression testing) */
 uint32_t hpfx3d_checksum_framebuffer(const hpfx3d_context *ctx);

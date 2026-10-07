@@ -1,0 +1,84 @@
+    The following OpenGL extensions are supported
+    by the HP VisualizeFX graphics hardware:
+
+        GL_EXT_bgr
+        GL_EXT_bgra
+        GL_EXT_depth_texture
+        GL_EXT_generate_mipmap
+        GL_EXT_shadow
+        GL_EXT_texture_border_clamp
+        GL_EXT_texture_edge_clamp
+        GL_EXT_texture3D
+        GL_EXT_subtexture
+        GL_EXT_rescale_normal
+        GL_WIN_overlay
+        GL_WIN_swap_hint
+        GL_KTX_buffer_region
+        GL_EXT_polygon_offset
+        GL_Autodesk_valid_back_buffer_hint
+
+    The following HP specific extensions are also
+    supported:
+
+        GL_HP_occlusion
+            This extension provides a mechanism
+            for applications to test whether a
+            complicated primitive would be visible
+            or not, without having to draw the
+            whole primitive.
+
+        GL_HP_visibility_test
+            The Visibility Test extension improves upon HP's
+            occlusion test extension by letting applications
+            perform multiple visibility tests before getting
+            back the results. This is different than the occlusion
+            test extension which provides only a single visibility
+            test result. To perform multiple visibility tests with
+            the occlusion test extension, the result of the previous
+            test must be obtained before starting a new test. With the 
+            Visibility Test extension, performance is improved
+            because the results of many tests can be obtained in
+            a single call.
+
+        GL_HP_visibility_stats
+            Visibility Statistics is a logical extension
+            to HP's occlusion test and visibility test
+            extensions. While visibility testing gives a
+            binary answer of visible or NOT visible,
+            visibility statistics gives a quantative answer
+            of how visible in the form of a pass count and
+            a fail count. Applications can use these counts
+            to compute "percent visible" numbers and use
+            the results in Level Of Detail (LOD) algorithms.
+
+        GL_HP_texture_lighting
+            This extension provides a way for
+            specular highlights not to blend with
+            texture colors.  This creates a more
+            realistic effect for certain surfaces.
+
+        GL_HP_draw_array_set
+            This extension provides the HP-only function
+            glDrawArraySetHP(). It allows one to pass a
+            set of glDrawArrays() calls in one call.
+            Applications can use glDrawArraySetHP() to
+            specify multiple primitives of the same type
+            with a single function call.
+
+        GL_HP_supersample
+            This extension allows the user to
+            turn on super sampling in order
+            to accomplish full-scene anti-aliasing
+
+        GL_HP_texture_color_table
+            This extension adds a color lookup table to the
+            texture mechanism. The table can be applied either
+            prior to the filtering the texture lookup, or to the
+            filtered result of the texture lookup. The result
+            of this operation is used in the texture environment
+            equations.
+
+
+The include file for these extensions, as well as
+other demos and utilities, can be obtained by
+running the setup program provided on the CD.

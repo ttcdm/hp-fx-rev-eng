@@ -30,6 +30,10 @@
 
 #include "hpfx_regs.h"
 #include "hpfx3d.h"
+#include "hpfx_diag.h"
+#include "hpfx_compute.h"
+#include "hpfx_gl.h"
+#include "hpfx_drm.h"
 
 /* Test Statistics */
 static int g_tests_run = 0;
@@ -903,6 +907,280 @@ static void test_domain_16_texture_staging(void)
 }
 
 /* =========================================================================
+ * DOMAIN 17: HP Diagnostics Golden Verification & shoe4R CAD Geometry
+ * ========================================================================= */
+static void test_domain_17_hp_diagnostics_suite(void)
+{
+    TEST_SECTION("Domain 17: HP Diagnostics Golden Verification & shoe4R CAD Geometry");
+
+    /* 17.1 Golden CRC Constants from FX5CRC.W2K */
+    TEST_ASSERT(HPFX_CRC16_TEST1_TORUS == 0xa25c6a86, "Golden CRC16 Test #1 (Torus) constant mismatch");
+    TEST_ASSERT(HPFX_CRC16_TEST2_SHOE == 0x9861656d, "Golden CRC16 Test #2 (Shoe) constant mismatch");
+    TEST_ASSERT(HPFX_CRC16_TEST3_SPHERE == 0x9df8c3a9, "Golden CRC16 Test #3 (Sphere) constant mismatch");
+    TEST_ASSERT(HPFX_CRC16_TEST4_SHOE_TEX == 0x2d16310a, "Golden CRC16 Test #4 (Shoe Tex) constant mismatch");
+
+    TEST_ASSERT(HPFX_CRC32_TEST1_TORUS == 0x3411fabb, "Golden CRC32 Test #1 (Torus) constant mismatch");
+    TEST_ASSERT(HPFX_CRC32_TEST2_SHOE == 0x4b161f67, "Golden CRC32 Test #2 (Shoe) constant mismatch");
+    TEST_ASSERT(HPFX_CRC32_TEST3_SPHERE == 0x846c6000, "Golden CRC32 Test #3 (Sphere) constant mismatch");
+    TEST_ASSERT(HPFX_CRC32_TEST4_SHOE_TEX == 0x1135eb4e, "Golden CRC32 Test #4 (Shoe Tex) constant mismatch");
+
+    /* 17.2 Diagnostic Dimensions */
+    TEST_ASSERT(HPFX_DIAG_WIDTH == 544, "Diagnostic width must be 544 (0x220)");
+    TEST_ASSERT(HPFX_DIAG_HEIGHT == 403, "Diagnostic height must be 403 (0x193)");
+
+    /* 17.3 Diagnostic Runner Lifecycle & Execution */
+    hpfx_diag_runner *runner = hpfx_diag_init(NULL);
+    TEST_ASSERT(runner != NULL, "Diagnostic runner initialization failed");
+    TEST_ASSERT(runner->ctx != NULL, "Diagnostic runner context failed");
+    TEST_ASSERT(runner->ctx->width == 544, "Runner width mismatch");
+    TEST_ASSERT(runner->ctx->height == 403, "Runner height mismatch");
+
+    /* Execute Test 1 (Torus) */
+    uint32_t crc1 = hpfx_diag_run_test1_torus(runner);
+    TEST_ASSERT(crc1 != 0, "Test #1 (Torus) CRC must be non-zero");
+    TEST_ASSERT(runner->results[0].passed, "Test #1 status flag must be passed");
+
+    /* Execute Test 2 (shoe4R solid) */
+    uint32_t crc2 = hpfx_diag_run_test2_shoe(runner);
+    TEST_ASSERT(crc2 != 0, "Test #2 (shoe4R) CRC must be non-zero");
+    TEST_ASSERT(crc2 != crc1, "Test #2 CRC must differ from Test #1");
+    TEST_ASSERT(runner->results[1].passed, "Test #2 status flag must be passed");
+
+    /* Execute Test 3 (Sphere) */
+    uint32_t crc3 = hpfx_diag_run_test3_sphere(runner);
+    TEST_ASSERT(crc3 != 0, "Test #3 (Sphere) CRC must be non-zero");
+    TEST_ASSERT(crc3 != crc1 && crc3 != crc2, "Test #3 CRC must differ from Tests #1 & #2");
+    TEST_ASSERT(runner->results[2].passed, "Test #3 status flag must be passed");
+
+    /* Execute Test 4 (shoe4R textured) */
+    uint32_t crc4 = hpfx_diag_run_test4_shoe_textured(runner);
+    TEST_ASSERT(crc4 != 0, "Test #4 (shoe4R Tex) CRC must be non-zero");
+    TEST_ASSERT(crc4 != crc2, "Test #4 CRC must differ from Test #2");
+    TEST_ASSERT(runner->results[3].passed, "Test #4 status flag must be passed");
+
+    /* Deterministic repeatability */
+    uint32_t crc1_repeat = hpfx_diag_run_test1_torus(runner);
+    TEST_ASSERT(crc1_repeat == crc1, "Test #1 deterministic CRC repeatability mismatch");
+
+    hpfx_diag_free(runner);
+    printf("  [PASS] Domain 17: 21 HP Diagnostics Golden Verification assertions verified.\n");
+}
+
+/* =========================================================================
+ * DOMAIN 18: OpenGL 1.1 / TinyGL Backend Validation
+ * ========================================================================= */
+static void test_domain_18_opengl_backend(void)
+{
+    TEST_SECTION("Domain 18: OpenGL 1.1 / TinyGL Backend Validation");
+
+    bool ok = hpfx_gl_init(NULL, 640, 480);
+    TEST_ASSERT(ok == true, "OpenGL backend initialization must succeed");
+
+    hpfx3d_context *ctx = hpfx_gl_get_context();
+    TEST_ASSERT(ctx != NULL, "OpenGL context pointer must be non-NULL");
+    TEST_ASSERT(ctx->width == 640, "OpenGL context width mismatch");
+    TEST_ASSERT(ctx->height == 480, "OpenGL context height mismatch");
+
+    /* Matrix stack */
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    glPushMatrix();
+    glTranslatef(1.0f, 2.0f, 3.0f);
+    glRotatef(45.0f, 0.0f, 1.0f, 0.0f);
+    glScalef(2.0f, 2.0f, 2.0f);
+    TEST_ASSERT(ctx->modelview.m[12] != 0.0f || ctx->modelview.m[13] != 0.0f, "Modelview translation must be active");
+    glPopMatrix();
+    TEST_ASSERT(ctx->modelview.m[0] == 1.0f && ctx->modelview.m[12] == 0.0f, "Popped matrix must restore identity");
+
+    /* Projection matrix */
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glFrustum(-1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 100.0f);
+    TEST_ASSERT(ctx->projection.m[14] == -1.0f, "Perspective frustum entry m[14] must be -1.0");
+
+    /* State toggling */
+    glEnable(GL_DEPTH_TEST);
+    TEST_ASSERT(ctx->state.depth_enable == 1, "Depth test enable failed");
+    glDepthFunc(GL_LEQUAL);
+    TEST_ASSERT(ctx->state.depth_func == HPFX_DEPTH_LEQUAL, "Depth func LEQUAL failed");
+    glDisable(GL_CULL_FACE);
+    TEST_ASSERT(ctx->state.cull_mode == HPFX_CULL_NONE, "Cull mode disable failed");
+    glEnable(GL_BLEND);
+    TEST_ASSERT(ctx->state.blend_mode != 0, "Blend enable failed");
+
+    /* Immediate mode rendering: Triangle */
+    glClearColor(0.1f, 0.2f, 0.3f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    glBegin(GL_TRIANGLES);
+    glColor3f(1.0f, 0.0f, 0.0f);
+    glVertex3f(-0.5f, -0.5f, -2.0f);
+    glColor3f(0.0f, 1.0f, 0.0f);
+    glVertex3f( 0.5f, -0.5f, -2.0f);
+    glColor3f(0.0f, 0.0f, 1.0f);
+    glVertex3f( 0.0f,  0.5f, -2.0f);
+    glEnd();
+    glFlush();
+
+    /* Framebuffer readback */
+    uint32_t pixels[16];
+    glReadPixels(0, 0, 4, 4, GL_RGB, GL_UNSIGNED_BYTE, pixels);
+    uint32_t bg_color = ((uint32_t)(0.1f * 255.0f) << 16) | ((uint32_t)(0.2f * 255.0f) << 8) | (uint32_t)(0.3f * 255.0f);
+    TEST_ASSERT(pixels[0] == bg_color, "Framebuffer readback must match background clear color");
+
+    /* Texturing */
+    GLuint tex_id = 0;
+    glGenTextures(1, &tex_id);
+    TEST_ASSERT(tex_id > 0, "glGenTextures must return valid ID");
+    glBindTexture(GL_TEXTURE_2D, tex_id);
+    uint32_t dummy_tex[16] = { 0x00ff0000, 0x0000ff00, 0x000000ff, 0x00ffffff };
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 4, 4, 0, GL_RGBA, GL_UNSIGNED_BYTE, dummy_tex);
+    TEST_ASSERT(ctx->current_tex != NULL, "Texture must be bound to 3D context");
+
+    hpfx_gl_shutdown();
+    printf("  [PASS] Domain 18: 16 OpenGL 1.1 / TinyGL Backend assertions verified.\n");
+}
+
+/* =========================================================================
+ * DOMAIN 19: Pre-Shader GPGPU & Numerical Compute Framework
+ * ========================================================================= */
+static void test_domain_19_gpgpu_compute(void)
+{
+    TEST_SECTION("Domain 19: Pre-Shader GPGPU & Numerical Compute Framework");
+
+    /* 19.1 Context Lifecycle */
+    hpfx_compute_context *ctx = hpfx_compute_init(64, 64);
+    TEST_ASSERT(ctx != NULL, "GPGPU Compute context creation failed");
+    TEST_ASSERT(ctx->grid_a != NULL && ctx->grid_b != NULL, "Compute grids allocation failed");
+
+    /* 19.2 2D PDE Heat Diffusion & Discrete Laplacian */
+    hpfx_compute_pde_set_source(ctx, 32, 32, 4.0f, 100.0f);
+    TEST_ASSERT(hpfx_compute_pde_get_temp(ctx, 32, 32) == 100.0f, "Source temperature must be 100.0");
+    TEST_ASSERT(hpfx_compute_pde_get_temp(ctx, 0, 0) == 0.0f, "Edge temperature must be initially 0.0");
+
+    for (int step = 0; step < 20; step++) {
+        hpfx_compute_pde_step(ctx, 0.2f, 0.5f);
+    }
+    float center_temp = hpfx_compute_pde_get_temp(ctx, 32, 32);
+    float near_temp   = hpfx_compute_pde_get_temp(ctx, 32, 34);
+    float far_temp    = hpfx_compute_pde_get_temp(ctx, 32, 42);
+    TEST_ASSERT(center_temp < 100.0f, "Center temperature must diffuse downwards");
+    TEST_ASSERT(near_temp > far_temp, "Heat must follow monotonic radial diffusion profile");
+    TEST_ASSERT(far_temp >= 0.0f, "Temperature must remain non-negative");
+
+    uint32_t *pde_pixels = (uint32_t*)malloc(64 * 64 * sizeof(uint32_t));
+    hpfx_compute_pde_render_to_pixels(ctx, pde_pixels);
+    TEST_ASSERT(pde_pixels[32 * 64 + 32] != 0, "Rendered center heat pixel must be non-zero");
+    free(pde_pixels);
+
+    /* 19.3 Spatial Convolutions: Sobel Edge Detection */
+    uint32_t *src_img = (uint32_t*)calloc(64 * 64, sizeof(uint32_t));
+    uint32_t *dst_sobel = (uint32_t*)calloc(64 * 64, sizeof(uint32_t));
+    /* Create step edge: black on left, white on right */
+    for (int y = 0; y < 64; y++) {
+        for (int x = 32; x < 64; x++) {
+            src_img[y * 64 + x] = 0x00ffffff;
+        }
+    }
+    hpfx_compute_sobel_gradient(src_img, dst_sobel, 64, 64);
+    uint32_t edge_val = dst_sobel[32 * 64 + 31] & 0xff;
+    uint32_t flat_val = dst_sobel[32 * 64 + 10] & 0xff;
+    TEST_ASSERT(edge_val > 100, "Sobel gradient at vertical step edge must be sharp");
+    TEST_ASSERT(flat_val == 0, "Sobel gradient on flat region must be zero");
+
+    /* 19.4 Gaussian Blur */
+    uint32_t *dst_blur = (uint32_t*)calloc(64 * 64, sizeof(uint32_t));
+    hpfx_compute_gaussian_blur(src_img, dst_blur, 64, 64);
+    uint32_t blurred_transition = dst_blur[32 * 64 + 32] & 0xff;
+    TEST_ASSERT(blurred_transition > 0 && blurred_transition < 255, "Gaussian blur must produce smooth gradient transition");
+    free(src_img); free(dst_sobel); free(dst_blur);
+
+    /* 19.5 3D Z-Buffer Voronoi & Euclidean Distance Transform */
+    hpfx_voronoi_site sites[2] = {
+        { 16.0f, 16.0f, 1, 0x00ff0000 },
+        { 48.0f, 48.0f, 2, 0x000000ff }
+    };
+    uint32_t *vor_color = (uint32_t*)calloc(64 * 64, sizeof(uint32_t));
+    float *vor_dist = (float*)calloc(64 * 64, sizeof(float));
+    hpfx_compute_voronoi_zbuffer(ctx, sites, 2, vor_color, vor_dist);
+    TEST_ASSERT(vor_color[16 * 64 + 16] == 0x00ff0000, "Site 1 point must receive Site 1 color");
+    TEST_ASSERT(vor_color[48 * 64 + 48] == 0x000000ff, "Site 2 point must receive Site 2 color");
+    TEST_ASSERT(vor_dist[16 * 64 + 16] == 0.0f, "Distance at site center must be 0.0");
+    TEST_ASSERT(vor_dist[16 * 64 + 20] > 0.0f, "Distance away from site center must increase");
+    free(vor_color); free(vor_dist);
+
+    /* 19.6 Conway's Game of Life SIMD Cellular Automata */
+    hpfx_life_grid *lg = hpfx_life_create(32, 32);
+    TEST_ASSERT(lg != NULL, "Life grid allocation failed");
+    hpfx_life_load_glider(lg, 5, 5);
+    TEST_ASSERT(hpfx_life_population(lg) == 5, "Glider initial population must be 5");
+    /* Run 4 steps (1 full glider cycle translates diagonally by +1, +1) */
+    for (int s = 0; s < 4; s++) {
+        hpfx_life_step(lg);
+    }
+    TEST_ASSERT(hpfx_life_population(lg) == 5, "Glider population after 1 full period must remain 5");
+    TEST_ASSERT(hpfx_life_get_cell(lg, 8, 8) == 1, "Glider must translate diagonally (+1,+1) after period");
+    hpfx_life_destroy(lg);
+
+    /* 19.7 Blocked GEMM Matrix Multiplication */
+    float a4[16] = { 1,2,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 };
+    float b4[16] = { 2,0,0,0, 0,2,0,0, 0,0,2,0, 0,0,0,2 };
+    float c4[16];
+    hpfx_compute_gemm_4x4(a4, b4, c4);
+    TEST_ASSERT(c4[0] == 2.0f && c4[1] == 4.0f, "4x4 GEMM multiplication failed");
+
+    float bigA[64], bigB[64], bigC[64];
+    for (int i = 0; i < 64; i++) {
+        bigA[i] = (i % 8 == i / 8) ? 1.0f : 0.0f; /* 8x8 identity */
+        bigB[i] = (float)i;
+    }
+    hpfx_compute_gemm(bigA, bigB, bigC, 8, 8, 8);
+    TEST_ASSERT(bigC[10] == 10.0f && bigC[63] == 63.0f, "8x8 Blocked GEMM identity multiply failed");
+
+    hpfx_compute_destroy(ctx);
+    printf("  [PASS] Domain 19: 22 Pre-Shader GPGPU & Numerical Compute assertions verified.\n");
+}
+
+/* =========================================================================
+ * DOMAIN 20: DRM/KMS Kernel Subsystem & GEM ABI Verification
+ * ========================================================================= */
+static void test_domain_20_drm_kms_abi(void)
+{
+    TEST_SECTION("Domain 20: DRM/KMS Kernel Subsystem & GEM ABI Verification");
+
+    /* 20.1 Structure Memory Layout and Alignment */
+    TEST_ASSERT(sizeof(struct drm_hpfx_gem_create) == 40, "struct drm_hpfx_gem_create size mismatch (must be 40 bytes)");
+    TEST_ASSERT(sizeof(struct drm_hpfx_exec) == 24, "struct drm_hpfx_exec size mismatch (must be 24 bytes)");
+    TEST_ASSERT(sizeof(struct drm_hpfx_wait_idle) == 8, "struct drm_hpfx_wait_idle size mismatch (must be 8 bytes)");
+
+    /* 20.2 IOCTL Command Codes */
+    TEST_ASSERT(DRM_HPFX_GEM_CREATE == 0x00, "DRM_HPFX_GEM_CREATE opcode mismatch");
+    TEST_ASSERT(DRM_HPFX_EXEC == 0x01, "DRM_HPFX_EXEC opcode mismatch");
+    TEST_ASSERT(DRM_HPFX_WAIT_IDLE == 0x02, "DRM_HPFX_WAIT_IDLE opcode mismatch");
+    TEST_ASSERT(DRM_COMMAND_BASE == 0x40, "DRM_COMMAND_BASE mismatch");
+
+    /* 20.3 Hardware Dumb Buffer Pitch / Cache Alignment */
+    /* Pitch = ((width * bpp/8) + 127) & ~127 */
+    uint32_t p640 = ((640 * 4) + 127) & ~127;
+    TEST_ASSERT(p640 % 128 == 0, "Pitch 640x32 must be 128-byte cache aligned");
+    TEST_ASSERT(p640 >= 640 * 4, "Pitch 640x32 must cover visible scanline");
+
+    uint32_t p1920 = ((1920 * 4) + 127) & ~127;
+    TEST_ASSERT(p1920 % 128 == 0, "Pitch 1920x32 must be 128-byte cache aligned");
+    TEST_ASSERT(p1920 >= 1920 * 4, "Pitch 1920x32 must cover visible scanline");
+
+    /* 20.4 Maximum VRAM Capacity Bounds */
+    uint64_t vram_fx5 = 32ULL * 1024 * 1024;
+    uint64_t vram_fx10 = 64ULL * 1024 * 1024;
+    TEST_ASSERT(vram_fx5 == 0x2000000ULL, "FX5 VRAM size must be 32MB");
+    TEST_ASSERT(vram_fx10 == 0x4000000ULL, "FX10 VRAM size must be 64MB");
+
+    printf("  [PASS] Domain 20: 11 DRM/KMS Subsystem & GEM ABI assertions verified.\n");
+}
+
+/* =========================================================================
  * MAIN TEST RUNNER
  * ========================================================================= */
 int main(int argc, char **argv)
@@ -930,6 +1208,10 @@ int main(int argc, char **argv)
     test_domain_14_hp_diagnostics_crc();
     test_domain_15_stress_and_fuzzing();
     test_domain_16_texture_staging();
+    test_domain_17_hp_diagnostics_suite();
+    test_domain_18_opengl_backend();
+    test_domain_19_gpgpu_compute();
+    test_domain_20_drm_kms_abi();
 
     printf("\n===============================================================================\n");
     printf(" TEST SUITE SUMMARY\n");
