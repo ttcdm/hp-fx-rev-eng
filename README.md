@@ -1,5 +1,20 @@
 # HP Visualize FX5 & FX10 Linux Driver & 3D Acceleration Suite
 
+## Screenshots
+
+<table>
+  <tr>
+    <td><img src="screenshots/hpfx_render_2d_blt.png" alt="2D blit"><br><sub>2D blit</sub></td>
+    <td><img src="screenshots/hpfx_render_3d_demo.png" alt="3D demo"><br><sub>3D demo</sub></td>
+    <td><img src="screenshots/hpfx_render_cad_studio.png" alt="CAD studio"><br><sub>CAD studio</sub></td>
+  </tr>
+  <tr>
+    <td><img src="screenshots/hpfx_render_gears.png" alt="Gears"><br><sub>Gears</sub></td>
+    <td><img src="screenshots/hpfx_render_textures.png" alt="Textures"><br><sub>Textures</sub></td>
+    <td><img src="screenshots/hpfx_render_voronoi.png" alt="Voronoi"><br><sub>Voronoi</sub></td>
+  </tr>
+</table>
+
 This repository contains the reverse-engineered hardware specifications, open-source Linux kernel framebuffer driver (`hpfx_fb`), userspace 3D acceleration library (`libhpfx3d`), and 3D demonstration program (`hpfx_3d_demo`) for the **Hewlett-Packard Visualize FX5 and FX10** series workstation graphics accelerators ("Lego" architecture).
 
 Extracted and reverse-engineered directly from the official HP Windows 2000 driver suite (`fx_w2k_118b.exe` / `hpfxlmp.w2k` / `hpfxlgdi.w2k` / `hpfxlkds.w2k` / `hpfxluds.w2k` / `hpfxlicd.w2k`).
