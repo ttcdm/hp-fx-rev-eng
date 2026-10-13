@@ -1,6 +1,5 @@
 # HP Visualize FX5 & FX10 Linux Driver & 3D Acceleration Suite
 
-```html
 ## Screenshots
 
 <table>
@@ -15,9 +14,7 @@
     <td><img src="hpfx_render_voronoi.png" alt="Voronoi"><br><sub>Voronoi</sub></td>
   </tr>
 </table>
-```
 
-If they still don't show, the images probably haven't been pushed. Check that they appear in the file list on GitHub.
 
 This repository contains the reverse-engineered hardware specifications, open-source Linux kernel framebuffer driver (`hpfx_fb`), userspace 3D acceleration library (`libhpfx3d`), and 3D demonstration program (`hpfx_3d_demo`) for the **Hewlett-Packard Visualize FX5 and FX10** series workstation graphics accelerators ("Lego" architecture).
 
